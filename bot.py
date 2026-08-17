@@ -58,12 +58,22 @@ def init_db():
         )
     """)
     conn.commit()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS groups (
+            code TEXT PRIMARY KEY,
+            teacher_id INTEGER,
+            name TEXT
+        )
+    """)
+    conn.commit()
     # Eski database'larda ba'zi ustunlar bo'lmasligi mumkin - qo'shib qo'yamiz
     for col_def in [
         "grade TEXT DEFAULT 'medium'",
         "current_mode TEXT DEFAULT 'normal'",
         "week_start TEXT",
         "week_correct INTEGER DEFAULT 0",
+        "group_code TEXT",
+        "personal_code TEXT",
     ]:
         try:
             cursor.execute(f"ALTER TABLE users ADD COLUMN {col_def}")
@@ -85,7 +95,7 @@ def get_user(user_id, first_name=None):
             (user_id, first_name)
         )
         conn.commit()
-        row = (user_id, first_name, 0, 0, None, None, None, 0, "medium", "normal", None, 0)
+        row = (user_id, first_name, 0, 0, None, None, None, 0, "medium", "normal", None, 0, None, None)
 
     conn.close()
     return {
@@ -101,6 +111,8 @@ def get_user(user_id, first_name=None):
         "current_mode": row[9] if len(row) > 9 and row[9] else "normal",
         "week_start": row[10] if len(row) > 10 else None,
         "week_correct": row[11] if len(row) > 11 and row[11] else 0,
+        "group_code": row[12] if len(row) > 12 else None,
+        "personal_code": row[13] if len(row) > 13 else None,
     }
 
 
@@ -236,6 +248,141 @@ def get_all_active_user_ids():
     rows = cursor.fetchall()
     conn.close()
     return rows
+
+
+def generate_code(length=6):
+    chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    return "".join(random.choice(chars) for _ in range(length))
+
+
+def create_group(teacher_id, name):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    for _ in range(10):
+        code = generate_code(6)
+        cursor.execute("SELECT code FROM groups WHERE code = ?", (code,))
+        if cursor.fetchone() is None:
+            cursor.execute("INSERT INTO groups (code, teacher_id, name) VALUES (?, ?, ?)", (code, teacher_id, name))
+            conn.commit()
+            conn.close()
+            return code
+    conn.close()
+    return None
+
+
+def get_group(code):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT code, teacher_id, name FROM groups WHERE code = ?", (code,))
+    row = cursor.fetchone()
+    conn.close()
+    return row
+
+
+def get_teacher_groups(teacher_id):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT code, name FROM groups WHERE teacher_id = ?", (teacher_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+
+def get_group_students(code):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT first_name, correct, wrong FROM users WHERE group_code = ? ORDER BY correct DESC", (code,))
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+
+def ensure_personal_code(user_id):
+    user = get_user(user_id)
+    if user["personal_code"]:
+        return user["personal_code"]
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    for _ in range(10):
+        code = generate_code(5)
+        cursor.execute("SELECT personal_code FROM users WHERE personal_code = ?", (code,))
+        if cursor.fetchone() is None:
+            conn.close()
+            update_user(user_id, personal_code=code)
+            return code
+    conn.close()
+    return None
+
+
+def get_user_by_personal_code(code):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id FROM users WHERE personal_code = ?", (code,))
+    row = cursor.fetchone()
+    conn.close()
+    if row is None:
+        return None
+    return get_user(row[0])
+
+
+# ==================== LEARNING PATH ====================
+PATH_ORDER = [
+    "add_sub", "negative", "mul_div", "fraction", "percent",
+    "power", "sqrt", "ratio", "average",
+    "linear_eq", "quad_eq",
+    "triangle", "rectangle", "circle",
+    "speed", "bank_percent",
+    "trig", "log", "arith_prog", "geom_prog",
+]
+
+
+def get_path_status(user_id):
+    rows = {t: (c, w) for t, c, w in get_topic_stats(user_id)}
+    statuses = []
+    current_topic = None
+    unlocked_found = False
+
+    for t in PATH_ORDER:
+        c, w = rows.get(t, (0, 0))
+        total = c + w
+        acc = c / total if total > 0 else 0
+        mastered = total >= 5 and acc >= 0.7
+
+        if not unlocked_found:
+            if mastered:
+                status = "done"
+            else:
+                status = "current"
+                current_topic = t
+                unlocked_found = True
+        else:
+            status = "locked"
+        statuses.append((t, status))
+
+    if current_topic is None:
+        current_topic = PATH_ORDER[-1]  # hammasi o'zlashtirilgan
+
+    return statuses, current_topic
+
+
+async def start_topic_question(user_id, first_name, topic, message=None, callback_message=None):
+    """Berilgan mavzudan savol boshlaydi - matn xabar yoki callback orqali chaqirilishi mumkin."""
+    user = get_user(user_id, first_name)
+    example_text, answer = generate_example(topic, user["grade"])
+    options = generate_options(answer)
+    update_user(user_id, current_topic=topic, current_answer=answer, current_mode="normal")
+
+    text = (
+        f"Mavzu: {TOPICS[topic]}\n\n"
+        f"📝 Misol: {example_text}\n\n"
+        f"To'g'ri javobni tanlang 👇"
+    )
+    markup = get_answer_keyboard(topic, options)
+
+    if callback_message:
+        await callback_message.edit_text(text, reply_markup=markup)
+    elif message:
+        await message.answer(text, reply_markup=markup)
 
 
 # ==================== TOPICS ====================
@@ -792,6 +939,145 @@ async def top_handler(message: types.Message):
     await message.answer(text)
 
 
+@dp.message(Command("creategroup"))
+async def creategroup_handler(message: types.Message):
+    parts = message.text.split(maxsplit=1)
+    if len(parts) < 2:
+        await message.answer("Guruh nomini kiriting: /creategroup 9-A sinf")
+        return
+
+    name = parts[1].strip()
+    get_user(message.from_user.id, message.from_user.first_name)
+    code = create_group(message.from_user.id, name)
+
+    if code is None:
+        await message.answer("Xatolik yuz berdi, qayta urinib ko'ring.")
+        return
+
+    await message.answer(
+        f"🏫 Guruh yaratildi: {name}\n\n"
+        f"Qo'shilish kodi: `{code}`\n\n"
+        f"O'quvchilaringizga shu kodni bering, ular botga `/joingroup {code}` deb yozishlari kerak.\n"
+        f"O'quvchilar ro'yxatini ko'rish uchun /mystudents yozing.",
+        parse_mode="Markdown"
+    )
+
+
+@dp.message(Command("joingroup"))
+async def joingroup_handler(message: types.Message):
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.answer("Guruh kodini kiriting: /joingroup ABC123")
+        return
+
+    code = parts[1].strip().upper()
+    group = get_group(code)
+
+    if group is None:
+        await message.answer("Bunday kodli guruh topilmadi. Kodni tekshirib qayta urinib ko'ring.")
+        return
+
+    get_user(message.from_user.id, message.from_user.first_name)
+    update_user(message.from_user.id, group_code=code)
+
+    await message.answer(f"✅ Siz \"{group[2]}\" guruhiga qo'shildingiz!")
+
+
+@dp.message(Command("mystudents"))
+async def mystudents_handler(message: types.Message):
+    teacher_id = message.from_user.id
+    groups = get_teacher_groups(teacher_id)
+
+    if not groups:
+        await message.answer("Sizda hali guruh yo'q. /creategroup <nom> orqali yarating.")
+        return
+
+    text = ""
+    for code, name in groups:
+        students = get_group_students(code)
+        text += f"🏫 {name} (kod: {code})\n"
+        if not students:
+            text += "   Hali o'quvchi qo'shilmagan.\n\n"
+            continue
+        for first_name, correct, wrong in students:
+            total = correct + wrong
+            pct = round(correct / total * 100) if total > 0 else 0
+            text += f"   • {first_name} — {correct} to'g'ri ({pct}%)\n"
+        text += "\n"
+
+    await message.answer(text)
+
+
+@dp.message(Command("path"))
+async def path_handler(message: types.Message):
+    user_id = message.from_user.id
+    get_user(user_id, message.from_user.first_name)
+    statuses, current_topic = get_path_status(user_id)
+
+    text = "📚 O'quv yo'lingiz:\n\n"
+    for t, status in statuses:
+        icon = {"done": "✅", "current": "▶️", "locked": "🔒"}[status]
+        text += f"{icon} {TOPICS[t]}\n"
+
+    text += f"\nHozirgi bosqich: {TOPICS[current_topic]}\n(Bir bosqichni ochish uchun kamida 5 ta savolda 70% to'g'ri javob bering)"
+
+    builder = InlineKeyboardBuilder()
+    builder.button(text="▶️ Boshlash", callback_data=f"pathstart_{current_topic}")
+    await message.answer(text, reply_markup=builder.as_markup())
+
+
+@dp.callback_query(F.data.startswith("pathstart_"))
+async def pathstart_handler(callback: types.CallbackQuery):
+    topic = callback.data.replace("pathstart_", "")
+    await start_topic_question(
+        callback.from_user.id, callback.from_user.first_name,
+        topic, callback_message=callback.message
+    )
+    await callback.answer()
+
+
+@dp.message(Command("mycode"))
+async def mycode_handler(message: types.Message):
+    get_user(message.from_user.id, message.from_user.first_name)
+    code = ensure_personal_code(message.from_user.id)
+    await message.answer(
+        f"🔗 Sizning shaxsiy kodingiz: `{code}`\n\n"
+        f"Do'stingizga shu kodni bering, u /compare {code} deb yozib natijalaringizni solishtira oladi.",
+        parse_mode="Markdown"
+    )
+
+
+@dp.message(Command("compare"))
+async def compare_handler(message: types.Message):
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.answer("Do'stingizning kodini kiriting: /compare 12345\n\nO'z kodingizni ko'rish uchun /mycode yozing.")
+        return
+
+    code = parts[1].strip().upper()
+    other = get_user_by_personal_code(code)
+
+    if other is None:
+        await message.answer("Bunday kodli foydalanuvchi topilmadi.")
+        return
+
+    if other["user_id"] == message.from_user.id:
+        await message.answer("Bu sizning o'z kodingiz 🙂 Do'stingizning kodini kiriting.")
+        return
+
+    me = get_user(message.from_user.id, message.from_user.first_name)
+    me_total = me["correct"] + me["wrong"]
+    me_pct = round(me["correct"] / me_total * 100) if me_total > 0 else 0
+    other_total = other["correct"] + other["wrong"]
+    other_pct = round(other["correct"] / other_total * 100) if other_total > 0 else 0
+
+    await message.answer(
+        f"🔗 Taqqoslash:\n\n"
+        f"👤 {me['first_name']}: {me['correct']} to'g'ri, {me_pct}% aniqlik, 🔥{me['streak']} kun\n"
+        f"👤 {other['first_name']}: {other['correct']} to'g'ri, {other_pct}% aniqlik, 🔥{other['streak']} kun"
+    )
+
+
 @dp.message(Command("speedtest"))
 async def speedtest_handler(message: types.Message):
     user_id = message.from_user.id
@@ -879,6 +1165,7 @@ async def set_bot_commands():
     commands = [
         types.BotCommand(command="start", description="Botni ishga tushirish"),
         types.BotCommand(command="topics", description="📚 Mavzular ro'yxati"),
+        types.BotCommand(command="path", description="🗺️ O'quv yo'lim"),
         types.BotCommand(command="random", description="🎲 Aralash rejim"),
         types.BotCommand(command="challenge", description="⭐ Qiyin savollar"),
         types.BotCommand(command="speedtest", description="⏱️ Tezlik testi"),
@@ -888,6 +1175,11 @@ async def set_bot_commands():
         types.BotCommand(command="stats", description="📈 Statistikangiz"),
         types.BotCommand(command="top", description="🏆 Umumiy reyting"),
         types.BotCommand(command="topweek", description="📅 Haftalik reyting"),
+        types.BotCommand(command="mycode", description="🔗 Shaxsiy kodim"),
+        types.BotCommand(command="compare", description="🔗 Do'st bilan solishtirish"),
+        types.BotCommand(command="creategroup", description="🏫 Guruh yaratish (o'qituvchi)"),
+        types.BotCommand(command="joingroup", description="🏫 Guruhga qo'shilish"),
+        types.BotCommand(command="mystudents", description="🏫 O'quvchilarim (o'qituvchi)"),
         types.BotCommand(command="level", description="🎓 Sinf darajasi"),
     ]
     await bot.set_my_commands(commands)
