@@ -2,14 +2,13 @@ import asyncio
 import random
 import math
 import sqlite3
-from datetime import date, timedelta
 import os
-from aiohttp import web
+from datetime import date, timedelta, datetime
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiohttp import web
 
-import os
 TOKEN = os.getenv("BOT_TOKEN")
 
 bot = Bot(token=TOKEN)
@@ -32,16 +31,45 @@ def init_db():
             current_answer INTEGER,
             last_played TEXT,
             streak INTEGER DEFAULT 0,
-            grade TEXT DEFAULT 'medium'
+            grade TEXT DEFAULT 'medium',
+            current_mode TEXT DEFAULT 'normal',
+            week_start TEXT,
+            week_correct INTEGER DEFAULT 0
         )
     """)
     conn.commit()
-    # Eski database'larda "grade" ustuni bo'lmasligi mumkin - qo'shib qo'yamiz
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN grade TEXT DEFAULT 'medium'")
-        conn.commit()
-    except sqlite3.OperationalError:
-        pass  # ustun allaqachon bor
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS topic_stats (
+            user_id INTEGER,
+            topic TEXT,
+            correct INTEGER DEFAULT 0,
+            wrong INTEGER DEFAULT 0,
+            PRIMARY KEY (user_id, topic)
+        )
+    """)
+    conn.commit()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS mistakes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            topic TEXT,
+            question TEXT,
+            correct_answer INTEGER
+        )
+    """)
+    conn.commit()
+    # Eski database'larda ba'zi ustunlar bo'lmasligi mumkin - qo'shib qo'yamiz
+    for col_def in [
+        "grade TEXT DEFAULT 'medium'",
+        "current_mode TEXT DEFAULT 'normal'",
+        "week_start TEXT",
+        "week_correct INTEGER DEFAULT 0",
+    ]:
+        try:
+            cursor.execute(f"ALTER TABLE users ADD COLUMN {col_def}")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass  # ustun allaqachon bor
     conn.close()
 
 
@@ -57,7 +85,7 @@ def get_user(user_id, first_name=None):
             (user_id, first_name)
         )
         conn.commit()
-        row = (user_id, first_name, 0, 0, None, None, None, 0, "medium")
+        row = (user_id, first_name, 0, 0, None, None, None, 0, "medium", "normal", None, 0)
 
     conn.close()
     return {
@@ -70,6 +98,9 @@ def get_user(user_id, first_name=None):
         "last_played": row[6],
         "streak": row[7],
         "grade": row[8] if len(row) > 8 and row[8] else "medium",
+        "current_mode": row[9] if len(row) > 9 and row[9] else "normal",
+        "week_start": row[10] if len(row) > 10 else None,
+        "week_correct": row[11] if len(row) > 11 and row[11] else 0,
     }
 
 
@@ -115,6 +146,96 @@ def update_streak(user_id):
 
     update_user(user_id, last_played=today, streak=new_streak)
     return new_streak
+
+
+def get_monday(d):
+    return (d - timedelta(days=d.weekday())).isoformat()
+
+
+def add_weekly_correct(user_id):
+    """Haftalik hisoblagichni yangilaydi, agar yangi hafta boshlangan bo'lsa nolldan boshlaydi."""
+    user = get_user(user_id)
+    this_monday = get_monday(date.today())
+
+    if user["week_start"] != this_monday:
+        update_user(user_id, week_start=this_monday, week_correct=1)
+    else:
+        update_user(user_id, week_correct=(user["week_correct"] or 0) + 1)
+
+
+def get_weekly_top(limit=10):
+    this_monday = get_monday(date.today())
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT first_name, week_correct FROM users
+        WHERE week_start = ? AND week_correct > 0
+        ORDER BY week_correct DESC LIMIT ?
+    """, (this_monday, limit))
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+
+def update_topic_stat(user_id, topic, correct_delta=0, wrong_delta=0):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT correct, wrong FROM topic_stats WHERE user_id = ? AND topic = ?", (user_id, topic))
+    row = cursor.fetchone()
+    if row is None:
+        cursor.execute(
+            "INSERT INTO topic_stats (user_id, topic, correct, wrong) VALUES (?, ?, ?, ?)",
+            (user_id, topic, correct_delta, wrong_delta)
+        )
+    else:
+        cursor.execute(
+            "UPDATE topic_stats SET correct = correct + ?, wrong = wrong + ? WHERE user_id = ? AND topic = ?",
+            (correct_delta, wrong_delta, user_id, topic)
+        )
+    conn.commit()
+    conn.close()
+
+
+def get_topic_stats(user_id):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT topic, correct, wrong FROM topic_stats WHERE user_id = ?", (user_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+
+def log_mistake(user_id, topic, question, correct_answer):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO mistakes (user_id, topic, question, correct_answer) VALUES (?, ?, ?, ?)",
+        (user_id, topic, question, correct_answer)
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_recent_mistakes(user_id, limit=8):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT topic, question, correct_answer FROM mistakes WHERE user_id = ? ORDER BY id DESC LIMIT ?",
+        (user_id, limit)
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+
+def get_all_active_user_ids():
+    """Kunlik eslatma uchun - kamida bitta marta o'ynagan barcha foydalanuvchilar."""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id, last_played FROM users")
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
 
 
 # ==================== TOPICS ====================
@@ -170,6 +291,39 @@ HINTS = {
     "arith_prog": "a_n = a1 + (n-1) × d formulasidan foydalaning.",
     "geom_prog": "a_n = a1 × q^(n-1) formulasidan foydalaning.",
 }
+
+FORMULAS = {
+    "add_sub": "➕ Qo'shish/Ayirish\n\nFormula yo'q, lekin qoida: raqamlarni o'ng tomondan boshlab, ustun-ustun qo'shing yoki ayiring.",
+    "mul_div": "✖️ Ko'paytirish/Bo'lish\n\na × b = ko'paytma\na ÷ b = bo'linma (b ≠ 0)",
+    "percent": "% Foizlar\n\nSonning n% i = son × n ÷ 100",
+    "fraction": "½ Kasrlar\n\nSonning a/b qismi = son × a ÷ b",
+    "power": "x² Darajalar\n\naⁿ = a × a × ... (n marta)",
+    "sqrt": "√ Kvadrat ildiz\n\n√a = shunday b ki, b × b = a",
+    "linear_eq": "🔤 Chiziqli tenglama\n\nax + b = c  →  x = (c − b) ÷ a",
+    "quad_eq": "🔤 Kvadrat tenglama\n\nx² + bx + c = 0\nIldizlar yig'indisi = −b, ko'paytmasi = c",
+    "triangle": "🔺 Uchburchak\n\nYuza = (asos × balandlik) ÷ 2\nPerimetr = barcha tomonlar yig'indisi",
+    "rectangle": "▭ To'rtburchak\n\nYuza = a × b\nPerimetr = 2 × (a + b)",
+    "circle": "⭕ Doira\n\nYuza = π × r²\nAylana uzunligi = 2 × π × r",
+    "ratio": "⚖️ Nisbat\n\na:b = c:d  →  a × d = b × c",
+    "average": "📊 O'rtacha qiymat\n\nO'rtacha = (barcha sonlar yig'indisi) ÷ (sonlar soni)",
+    "negative": "➖ Manfiy sonlar\n\n(−a) + (−b) = −(a+b)\n(−a) − b = −(a+b)",
+    "speed": "🚗 Tezlik-vaqt-masofa\n\nMasofa = Tezlik × Vaqt\nTezlik = Masofa ÷ Vaqt",
+    "bank_percent": "🏦 Foiz o'sishi\n\nFoiz summasi = Depozit × Foiz stavkasi ÷ 100",
+    "trig": "📐 Trigonometriya\n\nsin(0°)=0, sin(30°)=0.5, sin(90°)=1\ncos(0°)=1, cos(60°)=0.5, cos(90°)=0",
+    "log": "📈 Logarifm\n\nlog_a(b) = c  ⟺  a^c = b",
+    "arith_prog": "🔢 Arifmetik progressiya\n\na_n = a₁ + (n−1) × d",
+    "geom_prog": "🔢 Geometrik progressiya\n\na_n = a₁ × q^(n−1)",
+}
+
+MOTIVATIONS = [
+    "✅ To'g'ri! Zo'r ishladingiz!",
+    "✅ To'g'ri! Ajoyib!",
+    "✅ To'g'ri! Siz iqtidorlisiz!",
+    "✅ To'g'ri! Davom eting!",
+    "✅ To'g'ri! Zo'r natija!",
+    "✅ To'g'ri! Mukammal!",
+    "✅ To'g'ri! Shunday davom eting!",
+]
 
 
 def generate_example(topic, grade="medium"):
@@ -304,6 +458,31 @@ def get_hint_keyboard(topic):
     return builder.as_markup()
 
 
+def generate_options(answer):
+    """To'g'ri javob atrofida 3 ta noto'g'ri variant yaratadi."""
+    options = {answer}
+    attempts = 0
+    while len(options) < 4 and attempts < 30:
+        attempts += 1
+        delta = random.choice([-20, -10, -5, -3, -2, -1, 1, 2, 3, 5, 10, 20])
+        candidate = answer + delta
+        if candidate not in options:
+            options.add(candidate)
+    options = list(options)
+    random.shuffle(options)
+    return options
+
+
+def get_answer_keyboard(topic, options):
+    builder = InlineKeyboardBuilder()
+    for opt in options:
+        builder.button(text=str(opt), callback_data=f"ans_{opt}")
+    builder.adjust(2, 2)
+    builder.button(text="💡 Yordam", callback_data=f"hint_{topic}")
+    builder.adjust(2, 2, 1)
+    return builder.as_markup()
+
+
 def get_grade_keyboard():
     builder = InlineKeyboardBuilder()
     for key, name in GRADE_LABELS.items():
@@ -316,6 +495,14 @@ def get_topics_keyboard():
     builder = InlineKeyboardBuilder()
     for key, name in TOPICS.items():
         builder.button(text=name, callback_data=f"topic_{key}")
+    builder.adjust(2)
+    return builder.as_markup()
+
+
+def get_formula_keyboard():
+    builder = InlineKeyboardBuilder()
+    for key, name in TOPICS.items():
+        builder.button(text=name, callback_data=f"formula_{key}")
     builder.adjust(2)
     return builder.as_markup()
 
@@ -361,13 +548,7 @@ async def grade_chosen(callback: types.CallbackQuery):
 
     await callback.message.edit_text(
         f"Daraja tanlandi: {GRADE_LABELS[grade]}\n\n"
-        f"Endi mavzuni tanlang:\n\n"
-        f"Buyruqlar:\n"
-        f"/topics — mavzular\n"
-        f"/speedtest — 60 soniyalik tezlik testi\n"
-        f"/stats — statistikangiz\n"
-        f"/top — reyting\n"
-        f"/level — darajani o'zgartirish"
+        f"Endi mavzuni tanlang, yoki pastdagi 📋 Menu tugmasidan barcha buyruqlarni ko'ring:"
     )
     await callback.message.answer("Mavzuni tanlang:", reply_markup=get_topics_keyboard())
     await callback.answer()
@@ -386,15 +567,16 @@ async def topic_chosen(callback: types.CallbackQuery):
 
     topic_name = TOPICS[topic]
     example_text, answer = generate_example(topic, user["grade"])
+    options = generate_options(answer)
 
-    update_user(user_id, current_topic=topic, current_answer=answer)
+    update_user(user_id, current_topic=topic, current_answer=answer, current_mode="normal")
 
     await callback.message.edit_text(
         f"Mavzu: {topic_name}\n\n"
         f"📝 Misol: {example_text}\n\n"
-        f"Javobni yozing 👇\n\n"
-        f"(Boshqa mavzu uchun /topics, statistika uchun /stats, reyting uchun /top)",
-        reply_markup=get_hint_keyboard(topic)
+        f"To'g'ri javobni tanlang 👇\n\n"
+        f"(Menu tugmasidan boshqa buyruqlarni tanlashingiz mumkin)",
+        reply_markup=get_answer_keyboard(topic, options)
     )
     await callback.answer()
 
@@ -406,9 +588,173 @@ async def hint_handler(callback: types.CallbackQuery):
     await callback.answer(hint_text, show_alert=True)
 
 
+@dp.callback_query(F.data.startswith("ans_"))
+async def answer_button_handler(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    user = get_user(user_id, callback.from_user.first_name)
+
+    chosen = int(callback.data.replace("ans_", ""))
+    correct_answer = user["current_answer"]
+    topic = user["current_topic"]
+
+    if correct_answer is None or topic not in TOPICS:
+        await callback.answer("Bu savol eskirgan. /topics yozing.", show_alert=True)
+        return
+
+    if chosen == correct_answer:
+        update_user(user_id, correct=user["correct"] + 1)
+        update_topic_stat(user_id, topic, correct_delta=1)
+        add_weekly_correct(user_id)
+        new_streak = update_streak(user_id)
+        result_text = f"{random.choice(MOTIVATIONS)} 🔥 Streak: {new_streak} kun"
+    else:
+        update_user(user_id, wrong=user["wrong"] + 1)
+        update_topic_stat(user_id, topic, wrong_delta=1)
+        # Savol matnini olib, xatolar jurnaliga yozamiz
+        old_question = callback.message.text.split("Misol:")[-1].split("\n")[0].strip() if "Misol:" in callback.message.text else "?"
+        log_mistake(user_id, topic, old_question, correct_answer)
+        solution_hint = HINTS.get(topic, "")
+        result_text = f"❌ Noto'g'ri. To'g'ri javob: {correct_answer}\n📖 Yechim: {solution_hint}"
+
+    # Keyingi mavzuni tanlaymiz (random/challenge rejimda - yangi tasodifiy mavzu)
+    mode = user["current_mode"]
+    if mode in ("random", "challenge"):
+        next_topic = random.choice(list(TOPICS.keys()))
+    else:
+        next_topic = topic
+
+    effective_grade = "hard" if mode == "challenge" else user["grade"]
+    example_text, answer = generate_example(next_topic, effective_grade)
+    options = generate_options(answer)
+    update_user(user_id, current_topic=next_topic, current_answer=answer)
+
+    topic_label = f" ({TOPICS[next_topic]})" if mode in ("random", "challenge") else ""
+
+    await callback.message.edit_text(
+        f"{result_text}\n\n"
+        f"📝 Keyingi misol{topic_label}: {example_text}\n\n"
+        f"To'g'ri javobni tanlang 👇",
+        reply_markup=get_answer_keyboard(next_topic, options)
+    )
+    await callback.answer()
+
+
 @dp.message(Command("topics"))
 async def topics_handler(message: types.Message):
     await message.answer("Mavzuni tanlang:", reply_markup=get_topics_keyboard())
+
+
+@dp.message(Command("random"))
+async def random_handler(message: types.Message):
+    user_id = message.from_user.id
+    user = get_user(user_id, message.from_user.first_name)
+    update_user(user_id, current_mode="random")
+
+    topic = random.choice(list(TOPICS.keys()))
+    example_text, answer = generate_example(topic, user["grade"])
+    options = generate_options(answer)
+    update_user(user_id, current_topic=topic, current_answer=answer)
+
+    await message.answer(
+        f"🎲 Aralash rejim yoqildi! Har safar boshqa mavzudan savol keladi.\n\n"
+        f"📝 Misol ({TOPICS[topic]}): {example_text}\n\n"
+        f"To'g'ri javobni tanlang 👇",
+        reply_markup=get_answer_keyboard(topic, options)
+    )
+
+
+@dp.message(Command("challenge"))
+async def challenge_handler(message: types.Message):
+    user_id = message.from_user.id
+    get_user(user_id, message.from_user.first_name)
+    update_user(user_id, current_mode="challenge")
+
+    topic = random.choice(list(TOPICS.keys()))
+    example_text, answer = generate_example(topic, "hard")
+    options = generate_options(answer)
+    update_user(user_id, current_topic=topic, current_answer=answer)
+
+    await message.answer(
+        f"⭐ Challenge rejimi! Faqat eng qiyin darajadagi savollar.\n\n"
+        f"📝 Misol ({TOPICS[topic]}): {example_text}\n\n"
+        f"To'g'ri javobni tanlang 👇",
+        reply_markup=get_answer_keyboard(topic, options)
+    )
+
+
+@dp.message(Command("formula"))
+async def formula_handler(message: types.Message):
+    await message.answer("📘 Qaysi mavzu formulasini ko'rmoqchisiz?", reply_markup=get_formula_keyboard())
+
+
+@dp.callback_query(F.data.startswith("formula_"))
+async def formula_chosen(callback: types.CallbackQuery):
+    topic = callback.data.replace("formula_", "")
+    text = FORMULAS.get(topic, "Formula topilmadi.")
+    await callback.message.answer(f"📘 {text}")
+    await callback.answer()
+
+
+@dp.message(Command("mistakes"))
+async def mistakes_handler(message: types.Message):
+    user_id = message.from_user.id
+    rows = get_recent_mistakes(user_id, limit=8)
+
+    if not rows:
+        await message.answer("📖 Hali xatolaringiz yo'q. Zo'r natija!")
+        return
+
+    text = "📖 Oxirgi xatolaringiz:\n\n"
+    for topic, question, correct_answer in rows:
+        topic_name = TOPICS.get(topic, topic)
+        text += f"• {topic_name}: {question} → to'g'ri javob: {correct_answer}\n"
+    text += "\nShu mavzularni qayta mashq qilish uchun Menu orqali /topics ni tanlang."
+
+    await message.answer(text)
+
+
+@dp.message(Command("topweek"))
+async def topweek_handler(message: types.Message):
+    rows = get_weekly_top(10)
+
+    if not rows:
+        await message.answer("Bu hafta hali hech kim mashq qilmagan.")
+        return
+
+    text = "📅 Haftalik reyting:\n\n"
+    medals = ["🥇", "🥈", "🥉"]
+    for i, (name, week_correct) in enumerate(rows):
+        medal = medals[i] if i < 3 else f"{i+1}."
+        text += f"{medal} {name} — {week_correct} ta to'g'ri\n"
+
+    await message.answer(text)
+
+
+@dp.message(Command("map"))
+async def map_handler(message: types.Message):
+    user_id = message.from_user.id
+    rows = get_topic_stats(user_id)
+
+    if not rows:
+        await message.answer("Hali hech qanday mavzuda mashq qilmagansiz. /topics orqali boshlang!")
+        return
+
+    def accuracy(row):
+        c, w = row[1], row[2]
+        return c / (c + w) if (c + w) > 0 else 0
+
+    rows_sorted = sorted(rows, key=accuracy, reverse=True)
+
+    text = "📊 Bilim xaritangiz:\n\n"
+    for topic, correct, wrong in rows_sorted:
+        total = correct + wrong
+        pct = round(correct / total * 100) if total > 0 else 0
+        topic_name = TOPICS.get(topic, topic)
+        filled = pct // 10
+        bar = "🟩" * filled + "⬜" * (10 - filled)
+        text += f"{topic_name}\n{bar} {pct}%\n\n"
+
+    await message.answer(text)
 
 
 @dp.message(Command("stats"))
@@ -472,43 +818,21 @@ async def check_answer_handler(message: types.Message):
     user_id = message.from_user.id
     user = get_user(user_id, message.from_user.first_name)
 
-    if user["current_answer"] is not None and message.text.lstrip("-").isdigit():
+    is_speedtest = user_id in speedtest_active
+
+    if is_speedtest and user["current_answer"] is not None and message.text.lstrip("-").isdigit():
         correct_answer = user["current_answer"]
         user_answer = int(message.text)
-        is_speedtest = user_id in speedtest_active
 
         if user_answer == correct_answer:
-            if is_speedtest:
-                speedtest_active[user_id]["count"] += 1
-            else:
-                update_user(user_id, correct=user["correct"] + 1)
-                new_streak = update_streak(user_id)
-            if not is_speedtest:
-                await message.answer(f"✅ To'g'ri! Zo'r ishladingiz! 🔥 Streak: {new_streak} kun")
-            else:
-                await message.answer("✅ To'g'ri!")
+            speedtest_active[user_id]["count"] += 1
+            await message.answer("✅ To'g'ri!")
         else:
-            if not is_speedtest:
-                update_user(user_id, wrong=user["wrong"] + 1)
             await message.answer(f"❌ Noto'g'ri. To'g'ri javob: {correct_answer}")
 
-        # Keyingi misol
-        if is_speedtest:
-            example_text, answer = generate_example("add_sub")
-            update_user(user_id, current_answer=answer)
-            await message.answer(f"📝 {example_text} = ?")
-        else:
-            topic = user["current_topic"]
-            if topic and topic in TOPICS:
-                example_text, answer = generate_example(topic, user["grade"])
-                update_user(user_id, current_answer=answer)
-                await message.answer(
-                    f"📝 Keyingi misol: {example_text} = ?",
-                    reply_markup=get_hint_keyboard(topic)
-                )
-            else:
-                update_user(user_id, current_topic=None, current_answer=None)
-                await message.answer("Yangi mavzu tanlash uchun /topics yozing.")
+        example_text, answer = generate_example("add_sub")
+        update_user(user_id, current_answer=answer)
+        await message.answer(f"📝 {example_text} = ?")
     else:
         await message.answer("Mavzu tanlash uchun /topics, tezlik testi uchun /speedtest, statistika uchun /stats, reyting uchun /top yozing.")
 
@@ -527,9 +851,53 @@ async def start_web_server():
     await site.start()
 
 
+async def daily_reminder_loop():
+    """Har kuni soat 18:00 da, bugun mashq qilmagan foydalanuvchilarga eslatma yuboradi."""
+    while True:
+        now = datetime.now()
+        target = now.replace(hour=18, minute=0, second=0, microsecond=0)
+        if target <= now:
+            target += timedelta(days=1)
+        await asyncio.sleep((target - now).total_seconds())
+
+        today = date.today().isoformat()
+        rows = get_all_active_user_ids()
+        for user_id, last_played in rows:
+            if last_played != today:
+                try:
+                    await bot.send_message(
+                        user_id,
+                        "🔔 Bugun hali mashq qilmadingiz!\n\n"
+                        "5 daqiqa vaqt ajratib, bilimingizni mustahkamlang 💪\n"
+                        "Menu tugmasidan /topics ni tanlang va boshlang!"
+                    )
+                except Exception:
+                    pass  # foydalanuvchi botni bloklagan bo'lishi mumkin
+
+
+async def set_bot_commands():
+    commands = [
+        types.BotCommand(command="start", description="Botni ishga tushirish"),
+        types.BotCommand(command="topics", description="📚 Mavzular ro'yxati"),
+        types.BotCommand(command="random", description="🎲 Aralash rejim"),
+        types.BotCommand(command="challenge", description="⭐ Qiyin savollar"),
+        types.BotCommand(command="speedtest", description="⏱️ Tezlik testi"),
+        types.BotCommand(command="formula", description="🧮 Formulalar bazasi"),
+        types.BotCommand(command="mistakes", description="📖 Xatolaringiz"),
+        types.BotCommand(command="map", description="📊 Bilim xaritangiz"),
+        types.BotCommand(command="stats", description="📈 Statistikangiz"),
+        types.BotCommand(command="top", description="🏆 Umumiy reyting"),
+        types.BotCommand(command="topweek", description="📅 Haftalik reyting"),
+        types.BotCommand(command="level", description="🎓 Sinf darajasi"),
+    ]
+    await bot.set_my_commands(commands)
+
+
 async def main():
     init_db()
+    await set_bot_commands()
     await start_web_server()
+    asyncio.create_task(daily_reminder_loop())
     await dp.start_polling(bot)
 
 
