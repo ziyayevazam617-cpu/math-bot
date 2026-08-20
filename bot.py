@@ -364,7 +364,7 @@ def save_to_history(user_id, topic, question_text):
 PATH_ORDER = [
     "add_sub", "negative", "mul_div", "fraction", "percent",
     "power", "sqrt", "ratio", "average",
-    "linear_eq", "quad_eq",
+    "linear_eq", "quad_eq", "system_eq",
     "triangle", "rectangle", "circle",
     "speed", "bank_percent",
     "trig", "log", "arith_prog", "geom_prog",
@@ -430,6 +430,7 @@ TOPICS = {
     "sqrt": "√ Kvadrat ildiz",
     "linear_eq": "🔤 Chiziqli tenglama",
     "quad_eq": "🔤 Kvadrat tenglama",
+    "system_eq": "🔗 Tenglamalar sistemasi",
     "triangle": "🔺 Uchburchak",
     "rectangle": "▭ To'rtburchak",
     "circle": "⭕ Doira",
@@ -462,7 +463,7 @@ GRADE_TOPICS = {
     ],
 }
 GRADE_TOPICS["medium"] = GRADE_TOPICS["easy"] + [
-    "quad_eq", "bank_percent", "trig", "arith_prog", "geom_prog",
+    "quad_eq", "system_eq", "bank_percent", "trig", "arith_prog", "geom_prog",
 ]
 GRADE_TOPICS["hard"] = GRADE_TOPICS["medium"] + ["log"]
 
@@ -479,6 +480,7 @@ HINTS = {
     "sqrt": "Qaysi son o'zi bilan ko'paytirilganda shu songa teng bo'lishini toping.",
     "linear_eq": "Avval erkin hadni ikkala tomondan ayiring, keyin x oldidagi songa bo'ling.",
     "quad_eq": "Ildizlar yig'indisi -b, ko'paytmasi c ga teng (Vieta teoremasi).",
+    "system_eq": "Ikkinchi tenglamadan bitta o'zgaruvchini ifodalab, birinchisiga qo'ying (o'rniga qo'yish usuli) yoki ikkala tenglamani mos songa ko'paytirib qo'shing/ayiring (qo'shish usuli).",
     "triangle": "Uchburchak yuzasi = (asos × balandlik) ÷ 2.",
     "rectangle": "To'rtburchak yuzasi = tomon × tomon.",
     "circle": "Doira yuzasi = π × r × r.",
@@ -494,7 +496,7 @@ HINTS = {
 }
 
 # Qaysi mavzularda manfiy javob/variant mantiqan to'g'ri kelishi mumkin
-NEGATIVE_ALLOWED_TOPICS = {"add_sub", "negative", "linear_eq"}
+NEGATIVE_ALLOWED_TOPICS = {"add_sub", "negative", "linear_eq", "system_eq"}
 
 
 def topic_allows_negative(topic):
@@ -583,6 +585,20 @@ FORMULAS = {
         "• Vieta teoremasi (x² + px + q = 0 uchun):\n"
         "  x1 + x2 = −p\n"
         "  x1 × x2 = q"
+    ),
+    "system_eq": (
+        "🔗 TENGLAMALAR SISTEMASI\n\n"
+        "• Umumiy ko'rinish: ax + by = c,  dx + ey = f\n"
+        "• O'RNIGA QO'YISH USULI: bitta tenglamadan bitta o'zgaruvchini "
+        "ifodalang (masalan y = ...), so'ng ikkinchi tenglamaga qo'ying\n"
+        "• QO'SHISH (ALGEBRAIK) USULI: tenglamalarni bir xil koeffitsientlar "
+        "hosil bo'ladigan songa ko'paytirib, qo'shish yoki ayirish orqali "
+        "bitta o'zgaruvchini yo'qotasiz\n"
+        "• GRAFIK USULI: har ikkala tenglama chiziq sifatida chizilib, "
+        "kesishish nuqtasi yechim bo'ladi\n"
+        "• Sistema yechimlari soni: agar to'g'ri chiziqlar kesishsa - 1 ta "
+        "yechim, parallel bo'lsa - yechim yo'q, ustma-ust tushsa - cheksiz "
+        "yechim"
     ),
     "triangle": (
         "🔺 UCHBURCHAK\n\n"
@@ -697,29 +713,41 @@ ITEMS_POOL = ["olma", "qalam", "daftar", "konfet", "kitob", "yong'oq", "shar", "
 
 
 # ==================== MISOL GENERATORLARI ====================
-# Har bir mavzu uchun bir nechta MANTIQIY JIHATDAN TURLICHA variant (style) mavjud.
-# Har chaqirilganda tasodifiy variant tanlanadi, shuning uchun savol shakli ham,
-# sonlar ham o'zgarib turadi.
+# Har bir generator funksiya (savol_matni, javob) qaytaradi va qaysi sinf
+# darajalarida ("easy"=5-7, "medium"=8-9, "hard"=10-11) ishlatilishi mumkinligini
+# bildiruvchi TIERS to'plamiga ega bo'ladi.
+#
+# MUHIM PRINSIP: "medium" va "hard" darajalar uchun FAQAT o'sha darajaga mos
+# KUCHLIROQ va MANTIQIY jihatdan chuqurroq generatorlar ishlatiladi - oddiy/bolalarcha
+# ("necha ta olma qoldi" kabi) misollar faqat "easy" darajada qoladi. Bu orqali
+# 8-9 sinf o'quvchisiga hech qachon 5-7 sinf darajasidagi oddiy misol chiqmaydi.
+
+ALL_TIERS = {"easy", "medium", "hard"}
+EM_TIERS = {"easy", "medium"}
+MH_TIERS = {"medium", "hard"}
+M_ONLY = {"medium"}
+H_ONLY = {"hard"}
+
 
 def _rng(grade, easy, medium, hard):
     return {"easy": easy, "medium": medium, "hard": hard}[grade]
 
 
+# ============================================================
 # ---------- add_sub ----------
+# ============================================================
 def ex_add_sub_plain(grade):
-    lo, hi = _rng(grade, (5, 40), (50, 500), (200, 9999))
+    lo, hi = _rng(grade, (5, 40), (100, 900), (500, 9999))
     op = random.choice(["+", "-"])
     if op == "-":
-        # add_sub mavzusi manfiy sonlar bilan shug'ullanmaydi (buning uchun
-        # alohida "negative" mavzusi bor) - shuning uchun a >= b bo'lishi shart
         a, b = sorted([random.randint(lo, hi), random.randint(lo, hi)], reverse=True)
-        return f"{a} - {b}", a - b
+        return f"{a} − {b}", a - b
     a, b = random.randint(lo, hi), random.randint(lo, hi)
     return f"{a} + {b}", a + b
 
 
 def ex_add_sub_shop(grade):
-    lo, hi = _rng(grade, (15, 60), (100, 800), (500, 5000))
+    lo, hi = _rng(grade, (15, 60), None, None)
     a = random.randint(lo, hi)
     b = random.randint(1, a - 1)
     item = random.choice(ITEMS_POOL)
@@ -727,65 +755,97 @@ def ex_add_sub_shop(grade):
 
 
 def ex_add_sub_two_people(grade):
-    lo, hi = _rng(grade, (5, 40), (30, 300), (200, 2000))
+    lo, hi = _rng(grade, (5, 40), None, None)
     a, b = random.randint(lo, hi), random.randint(lo, hi)
     n1, n2 = random.sample(NAMES_POOL, 2)
     item = random.choice(ITEMS_POOL)
     return f"{n1} {a} ta, {n2} {b} ta {item} sotib oldi. Ular jami nechta {item} sotib olishdi?", a + b
 
 
-def ex_add_sub_three_terms(grade):
-    # Har bir qadamda natija manfiy bo'lib qolmasligi uchun ayirish
-    # miqdorlarini joriy yig'indidan oshmaydigan qilib tanlaymiz.
-    lo, hi = _rng(grade, (10, 50), (100, 600), (300, 999))
-    a = random.randint(lo, hi)
-
-    op1 = random.choice(["+", "-"])
-    if op1 == "-":
-        b = random.randint(1, a)
-    else:
-        b = random.randint(lo, hi)
-    val1 = a + b if op1 == "+" else a - b
-
-    op2 = random.choice(["+", "-"]) if val1 > 0 else "+"
-    if op2 == "-":
-        c = random.randint(1, val1)
-    else:
-        c = random.randint(lo, hi)
-    val2 = val1 + c if op2 == "+" else val1 - c
-
-    return f"{a} {op1} {b} {op2} {c}", val2
-
-
 def ex_add_sub_bus(grade):
-    lo, hi = _rng(grade, (10, 40), (20, 90), (50, 400))
+    lo, hi = _rng(grade, (10, 40), None, None)
     start = random.randint(lo, hi)
     left = random.randint(1, start)
     came = random.randint(1, 20)
     return f"Avtobusda {start} ta yo'lovchi bor edi. Bekatda {left} kishi tushdi, {came} kishi chiqdi. Endi avtobusda nechta yo'lovchi bor?", start - left + came
 
 
-GEN_ADD_SUB = [ex_add_sub_plain, ex_add_sub_shop, ex_add_sub_two_people, ex_add_sub_three_terms, ex_add_sub_bus]
+def ex_add_sub_three_terms(grade):
+    lo, hi = _rng(grade, (10, 50), (200, 900), (500, 3000))
+    a = random.randint(lo, hi)
+    op1 = random.choice(["+", "-"])
+    b = random.randint(1, a) if op1 == "-" else random.randint(lo, hi)
+    val1 = a + b if op1 == "+" else a - b
+    op2 = random.choice(["+", "-"]) if val1 > 0 else "+"
+    c = random.randint(1, val1) if op2 == "-" else random.randint(lo, hi)
+    val2 = val1 + c if op2 == "+" else val1 - c
+    return f"{a} {op1} {b} {op2} {c}", val2
 
 
+def ex_add_sub_balance(grade):
+    # Bank hisobi / byudjet kontekstida - 8-9 sinf uchun jiddiyroq mavzu
+    lo, hi = _rng(grade, None, (500, 5000), (2000, 20000))
+    start = random.randint(lo, hi)
+    n_ops = random.choice([3, 4])
+    balance = start
+    parts = [f"{start} so'm hisobda bor edi"]
+    for _ in range(n_ops):
+        # Balans 0 (yoki manfiy) bo'lib qolgan bo'lsa, faqat kirim bo'lishi mumkin -
+        # aks holda random.randint(1, balance) xato beradi
+        op = random.choice(["kirim", "chiqim"]) if balance > 0 else "kirim"
+        if op == "kirim":
+            amt = random.randint(lo // 4, hi // 2)
+            balance += amt
+            parts.append(f"{amt} so'm kirim bo'ldi")
+        else:
+            amt = random.randint(1, balance)
+            balance -= amt
+            parts.append(f"{amt} so'm sarflandi")
+    text = ", ".join(parts) + ". Hisobda hozir qancha so'm qoldi?"
+    return text, balance
+
+
+def ex_add_sub_missing_term(grade):
+    # x + b = c ko'rinishidagi tenglama emas, balki so'z shaklidagi "noma'lum
+    # hadni topish" - 8-9 sinf uchun mantiqiy fikrlashni talab qiladi
+    lo, hi = _rng(grade, None, (100, 900), (300, 5000))
+    result = random.randint(lo, hi)
+    known = random.randint(1, result - 1)
+    unknown = result - known
+    return f"Ikki sonning yig'indisi {result}. Ulardan biri {known} bo'lsa, ikkinchisi nechaga teng?", unknown
+
+
+GEN_ADD_SUB = [
+    (ex_add_sub_plain, ALL_TIERS),
+    (ex_add_sub_shop, {"easy"}),
+    (ex_add_sub_two_people, {"easy"}),
+    (ex_add_sub_bus, {"easy"}),
+    (ex_add_sub_three_terms, ALL_TIERS),
+    (ex_add_sub_balance, MH_TIERS),
+    (ex_add_sub_missing_term, MH_TIERS),
+]
+
+
+# ============================================================
 # ---------- mul_div ----------
+# ============================================================
 def ex_mul_div_plain(grade):
-    lo, hi = _rng(grade, (2, 10), (5, 25), (10, 50))
+    lo, hi = _rng(grade, (2, 10), (12, 40), (20, 80))
     a, b = random.randint(lo, hi), random.randint(2, 12)
     op = random.choice(["*", "/"])
     if op == "*":
-        return f"{a} * {b}", a * b
-    return f"{a*b} / {b}", a
+        return f"{a} × {b}", a * b
+    return f"{a*b} ÷ {b}", a
 
 
 def ex_mul_div_boxes(grade):
-    lo, hi = _rng(grade, (2, 9), (5, 20), (10, 40))
+    lo, hi = _rng(grade, (2, 9), None, None)
     a, b = random.randint(lo, hi), random.randint(2, 12)
     return f"Har bir qutida {a} ta olma bor. {b} ta quti bo'lsa, jami nechta olma bo'ladi?", a * b
 
 
 def ex_mul_div_share(grade):
-    lo, hi = _rng(grade, (2, 9), (5, 15), (10, 30))
+    lo, hi = _rng(grade, (2, 9), None, None)
     a, b = random.randint(lo, hi), random.randint(2, 9)
     total = a * b
     item = random.choice(ITEMS_POOL)
@@ -793,68 +853,163 @@ def ex_mul_div_share(grade):
 
 
 def ex_mul_div_price(grade):
-    lo, hi = _rng(grade, (2, 8), (3, 15), (5, 30))
+    lo, hi = _rng(grade, (2, 8), (5, 25), (10, 60))
     price = random.randint(lo, hi) * 1000
-    count = random.randint(2, 12)
+    count = random.randint(2, 15)
     return f"1 ta kitob narxi {price} so'm. {count} ta kitob uchun jami qancha to'lash kerak?", price * count
 
 
 def ex_mul_div_combo(grade):
     c = random.randint(2, 9)
-    lo, hi = _rng(grade, (2, 6), (2, 10), (3, 15))
+    lo, hi = _rng(grade, (2, 6), (5, 15), (10, 25))
     a = random.randint(lo, hi) * c
     b = random.randint(2, 12)
     return f"({a} × {b}) ÷ {c}", (a * b) // c
 
 
-GEN_MUL_DIV = [ex_mul_div_plain, ex_mul_div_boxes, ex_mul_div_share, ex_mul_div_price, ex_mul_div_combo]
+def ex_mul_div_order_ops(grade):
+    # Amallar tartibi (avval ko'paytirish/bo'lish, keyin qo'shish/ayirish) -
+    # 8-9 sinf uchun muhim algebraik ko'nikma
+    lo, hi = _rng(grade, None, (2, 20), (5, 50))
+    a = random.randint(lo, hi)
+    b = random.randint(2, 12)
+    c = random.randint(lo, hi)
+    d = random.randint(2, 12)
+    op_mid = random.choice(["+", "-"])
+    mul1 = a * b
+    mul2 = c * d
+    if op_mid == "-":
+        # manfiy natija chiqmasligi uchun kattasini oldinga qo'yamiz
+        if mul1 < mul2:
+            a, b, c, d = c, d, a, b
+            mul1, mul2 = mul2, mul1
+        result = mul1 - mul2
+    else:
+        result = mul1 + mul2
+    return f"{a} × {b} {op_mid} {c} × {d} = ? (amallar tartibiga rioya qiling)", result
 
 
+def ex_mul_div_distributive(grade):
+    # Taqsimot qonuni: a × (b + c) = a×b + a×c
+    lo_a, hi_a = _rng(grade, None, (3, 15), (5, 30))
+    a = random.randint(lo_a, hi_a)
+    b = random.randint(2, 20)
+    c = random.randint(2, 20)
+    return f"Taqsimot qonunidan foydalanib hisoblang: {a} × ({b} + {c}) = ?", a * (b + c)
+
+
+def ex_mul_div_two_step(grade):
+    # Ikki bosqichli real hayotiy masala (10-11 sinf uchun kattaroq sonlar)
+    lo, hi = _rng(grade, None, None, (10, 60))
+    workers = random.randint(lo, hi)
+    days = random.randint(3, 20)
+    rate = random.randint(2, 9)
+    total = workers * days * rate
+    return f"{workers} ishchi har biri kuniga {rate} ta detal ishlab chiqaradi. {days} kunda ular jami nechta detal ishlab chiqaradi?", total
+
+
+GEN_MUL_DIV = [
+    (ex_mul_div_plain, ALL_TIERS),
+    (ex_mul_div_boxes, {"easy"}),
+    (ex_mul_div_share, {"easy"}),
+    (ex_mul_div_price, ALL_TIERS),
+    (ex_mul_div_combo, ALL_TIERS),
+    (ex_mul_div_order_ops, MH_TIERS),
+    (ex_mul_div_distributive, MH_TIERS),
+    (ex_mul_div_two_step, H_ONLY),
+]
+
+
+# ============================================================
 # ---------- percent ----------
-# MUHIM: pct * base har doim 100 ga qoldiqsiz bo'linishi kerak (aks holda
-# javob butun son chiqmay, xato hisoblanadi). Buning uchun base doim 20 ga
-# karrali qilib tanlanadi - bu {5,10,15,20,25,50,75} foizlarning barchasi
-# uchun aniq (butun) natija kafolatlaydi.
+# ============================================================
+# MUHIM: pct * base har doim 100 ga qoldiqsiz bo'linishi kerak. Shuning uchun
+# base doim 20 ga karrali qilib tanlanadi - bu {5,10,15,20,25,50,75} kabi
+# foizlarning barchasi uchun aniq (butun) natija kafolatlaydi.
 def _percent_base(k_lo, k_hi):
     return 20 * random.randint(k_lo, k_hi)
 
 
 def ex_percent_discount(grade):
-    base = _percent_base(*_rng(grade, (1, 7), (10, 50), (50, 250)))
+    base = _percent_base(*_rng(grade, (1, 7), (15, 60), (60, 300)))
     pct = random.choice([5, 10, 15, 20, 25, 50])
     return f"{base} so'mlik narsaga {pct}% chegirma qilindi. Chegirma summasi qancha so'm?", base * pct // 100
 
 
 def ex_percent_increase(grade):
-    base = _percent_base(*_rng(grade, (2, 10), (15, 40), (50, 250)))
+    base = _percent_base(*_rng(grade, (2, 10), (20, 50), (60, 300)))
     pct = random.choice([5, 10, 15, 20, 25])
     return f"Mahsulot narxi {base} so'm edi, keyin {pct}% oshdi. Yangi narx qancha so'm?", base + base * pct // 100
 
 
 def ex_percent_decrease(grade):
-    base = _percent_base(*_rng(grade, (2, 8), (10, 40), (50, 200)))
+    base = _percent_base(*_rng(grade, (2, 8), (15, 50), (60, 250)))
     pct = random.choice([5, 10, 20, 25])
     return f"Mahsulot narxi {base} so'm edi, keyin {pct}% arzonlashdi. Yangi narx qancha so'm?", base - base * pct // 100
 
 
 def ex_percent_direct(grade):
-    base = _percent_base(*_rng(grade, (1, 7), (8, 25), (30, 100)))
+    base = _percent_base(*_rng(grade, (1, 7), (10, 35), (40, 150)))
     pct = random.choice([5, 10, 15, 20, 25, 50, 75])
     return f"{base} ning {pct}% i nechaga teng?", base * pct // 100
 
 
 def ex_percent_of_students(grade):
-    total = _percent_base(*_rng(grade, (1, 5), (3, 8), (6, 15)))
+    total = _percent_base(*_rng(grade, (1, 5), (4, 10), (8, 20)))
     pct = random.choice([10, 20, 25, 50])
     return f"Sinfda {total} ta o'quvchi bor. Ularning {pct}% i qiz bo'lsa, nechta qiz bor?", total * pct // 100
 
 
-GEN_PERCENT = [ex_percent_discount, ex_percent_increase, ex_percent_decrease, ex_percent_direct, ex_percent_of_students]
+def ex_percent_successive(grade):
+    # Ketma-ket ikki marta foiz o'zgarishi - 8-9 sinf uchun klassik masala
+    # (natija boshlang'ich foizlarning oddiy yig'indisiga TENG BO'LMASLIGINI tushunish muhim)
+    base = _percent_base(*_rng(grade, None, (10, 40), (30, 150)))
+    pct1 = random.choice([10, 20, 25, 50])
+    dir1 = random.choice(["oshdi", "tushdi"])
+    step1 = base + base * pct1 // 100 if dir1 == "oshdi" else base - base * pct1 // 100
+    pct2 = random.choice([10, 20])
+    dir2 = random.choice(["oshdi", "tushdi"])
+    step2 = step1 + step1 * pct2 // 100 if dir2 == "oshdi" else step1 - step1 * pct2 // 100
+    return (
+        f"Mahsulot narxi {base} so'm edi. Avval {pct1}% ga {dir1}, so'ngra yangi narx yana "
+        f"{pct2}% ga {dir2}. Yakuniy narx qancha so'm bo'ladi?",
+        step2,
+    )
 
 
+def ex_percent_reverse(grade):
+    # A soni B sonining necha foizini tashkil qiladi (teskari masala)
+    base = _percent_base(*_rng(grade, None, (5, 20), (10, 50)))
+    pct = random.choice([10, 20, 25, 40, 50, 75])
+    part = base * pct // 100
+    return f"{part} soni {base} sonining necha foizini tashkil qiladi?", pct
+
+
+def ex_percent_find_whole(grade):
+    # Qism va foiz ma'lum, butun sonni topish (teskari masala)
+    pct = random.choice([10, 20, 25, 40, 50])
+    whole = _percent_base(*_rng(grade, None, (5, 25), (10, 60)))
+    part = whole * pct // 100
+    return f"Bir sonning {pct}% i {part} ga teng. Shu son nechaga teng?", whole
+
+
+GEN_PERCENT = [
+    (ex_percent_discount, ALL_TIERS),
+    (ex_percent_increase, ALL_TIERS),
+    (ex_percent_decrease, ALL_TIERS),
+    (ex_percent_direct, ALL_TIERS),
+    (ex_percent_of_students, {"easy"}),
+    (ex_percent_successive, MH_TIERS),
+    (ex_percent_reverse, MH_TIERS),
+    (ex_percent_find_whole, MH_TIERS),
+]
+
+
+# ============================================================
 # ---------- fraction ----------
+# ============================================================
 def ex_fraction_simple(grade):
-    denom = random.choice(_rng(grade, [2, 3, 4], [2, 3, 4, 5, 6], [4, 5, 6, 8, 10, 12]))
+    denom = random.choice(_rng(grade, [2, 3, 4], [3, 4, 5, 6, 8], [6, 8, 9, 10, 12]))
     num = random.randint(1, denom - 1)
     k = random.randint(2, 10)
     total = denom * k
@@ -891,25 +1046,71 @@ def ex_fraction_money(grade):
     return f"{random.choice(NAMES_POOL)}da {total} so'm bor edi. U pulining {num}/{denom} qismini sarfladi. Necha so'm sarflandi?", num * total // denom
 
 
-GEN_FRACTION = [ex_fraction_simple, ex_fraction_nested, ex_fraction_remaining, ex_fraction_money]
+def ex_fraction_common_denom_add(grade):
+    # Turli maxrajli kasrlarni umumiy maxrajga keltirib qo'shish - 8-9 sinf
+    # uchun asosiy ko'nikma. Natija butun son chiqishi uchun maxsus tanlanadi.
+    d1 = random.choice([2, 3, 4, 5])
+    d2 = random.choice([2, 3, 4, 5])
+    while d2 == d1:
+        d2 = random.choice([2, 3, 4, 5])
+    lcm = d1 * d2 // math.gcd(d1, d2)
+    n1 = random.randint(1, d1 - 1)
+    n2 = random.randint(1, d2 - 1)
+    k = random.randint(2, 8)
+    total = lcm * k
+    part = (n1 * total // d1) + (n2 * total // d2)
+    return (
+        f"{total} sonining {n1}/{d1} qismi bilan {n2}/{d2} qismining yig'indisi nechaga teng?",
+        part,
+    )
 
 
+def ex_fraction_compare(grade):
+    # Ikki kasrni taqqoslash - qaysi biri katta (mantiqiy fikrlash, hisoblashsiz emas).
+    # DIQQAT: ba'zi kichik maxrajlarda (masalan 2) faqat bitta imkoniyat bo'lgani
+    # uchun cheksiz siklga tushib qolmaslik uchun urinishlar soni cheklangan va
+    # muvaffaqiyatsiz bo'lsa butunlay yangi juftlik tanlanadi.
+    for _ in range(30):
+        d1, d2 = random.sample([2, 3, 4, 5, 6, 8, 9, 10], 2)
+        n1 = random.randint(1, d1 - 1)
+        n2 = random.randint(1, d2 - 1)
+        val1 = n1 / d1
+        val2 = n2 / d2
+        if abs(val1 - val2) >= 0.02:
+            bigger = 1 if val1 > val2 else 2
+            return f"{n1}/{d1} va {n2}/{d2} kasrlaridan qaysi biri katta? (1-chi bo'lsa 1, 2-chi bo'lsa 2 deb yozing)", bigger
+    # Ehtiyot chorasi (amalda deyarli hech qachon bu yerga yetib kelmaydi)
+    return "1/2 va 1/3 kasrlaridan qaysi biri katta? (1-chi bo'lsa 1, 2-chi bo'lsa 2 deb yozing)", 1
+
+
+GEN_FRACTION = [
+    (ex_fraction_simple, ALL_TIERS),
+    (ex_fraction_nested, ALL_TIERS),
+    (ex_fraction_remaining, {"easy"}),
+    (ex_fraction_money, {"easy"}),
+    (ex_fraction_common_denom_add, MH_TIERS),
+    (ex_fraction_compare, MH_TIERS),
+]
+
+
+# ============================================================
 # ---------- power ----------
+# ============================================================
 def ex_power_square(grade):
-    lo, hi = _rng(grade, (2, 10), (2, 20), (2, 30))
+    lo, hi = _rng(grade, (2, 10), (11, 25), (20, 40))
     a = random.randint(lo, hi)
     return f"{a}² = ?", a * a
 
 
 def ex_power_cube(grade):
-    lo, hi = _rng(grade, (2, 6), (2, 9), (2, 12))
+    lo, hi = _rng(grade, (2, 6), (5, 12), (8, 15))
     a = random.randint(lo, hi)
     return f"{a}³ = ?", a ** 3
 
 
 def ex_power_sum_then_power(grade):
     a, b = random.randint(2, 9), random.randint(1, 9)
-    p = random.choice([2, 3]) if grade != "easy" else 2
+    p = 2 if grade == "easy" else random.choice([2, 3])
     return f"({a}+{b})^{p} = ?", (a + b) ** p
 
 
@@ -919,10 +1120,44 @@ def ex_power_diff_then_square(grade):
     return f"({a}−{b})² = ?", (a - b) ** 2
 
 
-GEN_POWER = [ex_power_square, ex_power_cube, ex_power_sum_then_power, ex_power_diff_then_square]
+def ex_power_law_mul(grade):
+    # aᵐ × aⁿ = aᵐ⁺ⁿ - daraja qonuni (8-9 sinf algebra dasturi)
+    base = random.randint(2, 5)
+    m = random.randint(1, 4)
+    n = random.randint(1, 4)
+    return f"{base}^{m} × {base}^{n} ni {base} ning bitta darajasi ko'rinishida yozsangiz, daraja ko'rsatkichi nechaga teng?", m + n
 
 
+def ex_power_law_div(grade):
+    # aᵐ ÷ aⁿ = aᵐ⁻ⁿ (m > n bo'lishi shart)
+    base = random.randint(2, 5)
+    n = random.randint(1, 4)
+    m = random.randint(n + 1, n + 5)
+    return f"{base}^{m} ÷ {base}^{n} ni {base} ning bitta darajasi ko'rinishida yozsangiz, daraja ko'rsatkichi nechaga teng?", m - n
+
+
+def ex_power_law_value(grade):
+    # Daraja qonunini qo'llab, YAKUNIY SON qiymatini hisoblash (kuchliroq)
+    base = random.choice([2, 3])
+    m = random.randint(1, 3)
+    n = random.randint(1, 3)
+    return f"{base}^{m} × {base}^{n} necha songa teng? (avval daraja qonunini qo'llang)", base ** (m + n)
+
+
+GEN_POWER = [
+    (ex_power_square, ALL_TIERS),
+    (ex_power_cube, ALL_TIERS),
+    (ex_power_sum_then_power, ALL_TIERS),
+    (ex_power_diff_then_square, ALL_TIERS),
+    (ex_power_law_mul, MH_TIERS),
+    (ex_power_law_div, MH_TIERS),
+    (ex_power_law_value, MH_TIERS),
+]
+
+
+# ============================================================
 # ---------- sqrt ----------
+# ============================================================
 PERFECT_SQUARES_EASY = [4, 9, 16, 25, 36, 49, 64, 81, 100]
 PERFECT_SQUARES_ALL = [n * n for n in range(2, 26)]
 
@@ -934,29 +1169,45 @@ def ex_sqrt_direct(grade):
 
 
 def ex_sqrt_from_square(grade):
-    lo, hi = _rng(grade, (5, 12), (10, 20), (15, 30))
+    lo, hi = _rng(grade, (5, 12), (13, 22), (18, 30))
     base = random.randint(lo, hi)
     return f"√{base*base} = ?", base
 
 
 def ex_sqrt_area_to_side(grade):
-    lo, hi = _rng(grade, (3, 10), (8, 18), (12, 25))
+    lo, hi = _rng(grade, (3, 10), (10, 20), (15, 28))
     side = random.randint(lo, hi)
     area = side * side
     return f"Yuzasi {area} bo'lgan kvadratning tomoni nechaga teng?", side
 
 
 def ex_sqrt_product(grade):
-    # √(a×b) = √a × √b xossasidan foydalanamiz
-    lo, hi = _rng(grade, (2, 6), (2, 10), (2, 15))
+    lo, hi = _rng(grade, (2, 6), (4, 12), (8, 18))
     a, b = random.randint(lo, hi), random.randint(lo, hi)
     return f"√{a*a} × √{b*b} nechaga teng?", a * b
 
 
-GEN_SQRT = [ex_sqrt_direct, ex_sqrt_from_square, ex_sqrt_area_to_side, ex_sqrt_product]
+def ex_sqrt_estimate(grade):
+    # To'liq kvadrat bo'lmagan son ikkita ketma-ket butun son orasida qayerda
+    # joylashganini aniqlash - 8-9 sinf uchun mantiqiy baholash ko'nikmasi
+    n = random.randint(4, 29)
+    low_root = n
+    n_squared_area = random.randint(low_root * low_root + 1, (low_root + 1) * (low_root + 1) - 1)
+    return f"√{n_squared_area} soni qaysi ikkita ketma-ket butun son orasida joylashgan? Kichigini yozing.", low_root
 
 
+GEN_SQRT = [
+    (ex_sqrt_direct, ALL_TIERS),
+    (ex_sqrt_from_square, ALL_TIERS),
+    (ex_sqrt_area_to_side, ALL_TIERS),
+    (ex_sqrt_product, ALL_TIERS),
+    (ex_sqrt_estimate, MH_TIERS),
+]
+
+
+# ============================================================
 # ---------- linear_eq ----------
+# ============================================================
 def ex_linear_simple(grade):
     x = random.randint(1, 30)
     b = random.randint(1, 30)
@@ -973,12 +1224,12 @@ def ex_linear_ax_b(grade):
 
 
 def ex_linear_both_sides(grade):
-    x = random.randint(1, 15)
-    a = random.randint(2, 8)
-    c = random.randint(1, 8)
+    x = random.randint(2, 20)
+    a = random.randint(3, 12)
+    c = random.randint(1, 11)
     while c == a:
-        c = random.randint(1, 8)
-    b = random.randint(1, 20)
+        c = random.randint(1, 11)
+    b = random.randint(1, 30)
     d = a * x + b - c * x
     sign_b = f"+ {b}" if b >= 0 else f"- {abs(b)}"
     sign_d = f"+ {d}" if d >= 0 else f"- {abs(d)}"
@@ -986,19 +1237,67 @@ def ex_linear_both_sides(grade):
 
 
 def ex_linear_minus(grade):
-    x = random.randint(1, 25)
-    a = random.randint(2, 10)
+    x = random.randint(2, 25)
+    a = random.randint(3, 12)
     b = random.randint(1, 30)
     c = a * x - b
     return f"{a}x − {b} = {c}, x = ?", x
 
 
-GEN_LINEAR_EQ = [ex_linear_simple, ex_linear_ax_b, ex_linear_both_sides, ex_linear_minus]
+def ex_linear_parentheses(grade):
+    # a(x + b) = c ko'rinishi - qavsni ochish ko'nikmasini talab qiladi
+    x = random.randint(2, 20)
+    a = random.randint(2, 9)
+    b = random.randint(1, 15)
+    c = a * (x + b)
+    return f"{a}(x + {b}) = {c}, x = ?", x
 
 
+def ex_linear_parentheses_both(grade):
+    # a(x + b) = c(x - d) ko'rinishi (10-11 sinf uchun kuchliroq)
+    x = random.randint(2, 15)
+    a = random.randint(2, 8)
+    c = random.randint(1, 7)
+    while c == a:
+        c = random.randint(1, 7)
+    b = random.randint(1, 15)
+    # a(x+b) = cx + ad  =>  ax + ab = cx + cd_target ... hisoblaymiz:
+    # a*x + a*b = c*x + rhs_const  =>  rhs_const = a*x + a*b - c*x
+    rhs_const = a * x + a * b - c * x
+    sign_rhs = f"+ {rhs_const}" if rhs_const >= 0 else f"- {abs(rhs_const)}"
+    return f"{a}(x + {b}) = {c}x {sign_rhs}, x = ?", x
+
+
+def ex_linear_two_step_word(grade):
+    # So'z masalasi - chiziqli tenglama shaklida yechish talab qilinadi
+    x = random.randint(3, 30)
+    a = random.randint(2, 8)
+    b = random.randint(5, 50)
+    total = a * x + b
+    return (
+        f"Bir guruh o'quvchi {a} ta avtobusga teng bo'lib chiqdi, har biriga x kishidan "
+        f"o'tirdi va yana {b} kishi piyoda ketdi. Agar jami {total} kishi bo'lsa, "
+        f"har bir avtobusda nechta kishi bor ({a}x + {b} = {total} tenglamasidan x ni toping)?",
+        x,
+    )
+
+
+GEN_LINEAR_EQ = [
+    (ex_linear_simple, {"easy"}),
+    (ex_linear_ax_b, {"easy"}),
+    (ex_linear_both_sides, MH_TIERS),
+    (ex_linear_minus, MH_TIERS),
+    (ex_linear_parentheses, MH_TIERS),
+    (ex_linear_parentheses_both, H_ONLY),
+    (ex_linear_two_step_word, MH_TIERS),
+]
+
+
+# ============================================================
 # ---------- quad_eq ----------
+# ============================================================
 def ex_quad_pure(grade):
-    lo, hi = _rng(grade, (2, 12), (2, 16), (2, 20))
+    lo, hi = _rng(grade, (2, 12), (5, 18), (10, 25))
     x = random.randint(lo, hi)
     return f"x² = {x*x} (x > 0), x = ?", x
 
@@ -1011,31 +1310,134 @@ def _quad_text(r1, r2):
 
 
 def ex_quad_sum(grade):
-    r1, r2 = random.randint(1, 12), random.randint(1, 12)
+    r1, r2 = random.randint(1, 15), random.randint(1, 15)
     eq, b, c = _quad_text(r1, r2)
     return f"{eq} tenglama ildizlarining yig'indisi?", r1 + r2
 
 
 def ex_quad_product(grade):
-    r1, r2 = random.randint(1, 10), random.randint(1, 10)
+    r1, r2 = random.randint(1, 12), random.randint(1, 12)
     eq, b, c = _quad_text(r1, r2)
     return f"{eq} tenglama ildizlarining ko'paytmasi?", r1 * r2
 
 
 def ex_quad_largest(grade):
-    r1, r2 = random.randint(1, 12), random.randint(1, 12)
+    r1, r2 = random.randint(1, 15), random.randint(1, 15)
     while r1 == r2:
-        r2 = random.randint(1, 12)
+        r2 = random.randint(1, 15)
     eq, b, c = _quad_text(r1, r2)
     return f"{eq} tenglamaning eng katta ildizi?", max(r1, r2)
 
 
-GEN_QUAD_EQ = [ex_quad_pure, ex_quad_sum, ex_quad_product, ex_quad_largest]
+def ex_quad_discriminant(grade):
+    # Diskriminantni hisoblash - D = b² - 4ac (8-9 sinf uchun asosiy ko'nikma)
+    a = random.randint(1, 3)
+    r1, r2 = random.randint(1, 10), random.randint(1, 10)
+    b = -a * (r1 + r2)
+    c = a * r1 * r2
+    d = b * b - 4 * a * c
+    sign_b = f"+ {b}x" if b >= 0 else f"- {abs(b)}x"
+    sign_c = f"+ {c}" if c >= 0 else f"- {abs(c)}"
+    coef_a = f"{a}x²" if a != 1 else "x²"
+    return f"{coef_a} {sign_b} {sign_c} = 0 tenglamaning diskriminanti (D = b² − 4ac) nechaga teng?", d
 
 
+def ex_quad_sum_of_squares(grade):
+    # x1² + x2² = (x1+x2)² - 2*x1*x2 ayniyati (kuchliroq, hard darajaga mos)
+    r1, r2 = random.randint(1, 10), random.randint(1, 10)
+    eq, b, c = _quad_text(r1, r2)
+    return f"{eq} tenglama ildizlari x1 va x2 bo'lsa, x1² + x2² nechaga teng?", r1 * r1 + r2 * r2
+
+
+GEN_QUAD_EQ = [
+    (ex_quad_pure, MH_TIERS),
+    (ex_quad_sum, MH_TIERS),
+    (ex_quad_product, MH_TIERS),
+    (ex_quad_largest, MH_TIERS),
+    (ex_quad_discriminant, MH_TIERS),
+    (ex_quad_sum_of_squares, H_ONLY),
+]
+
+
+# ============================================================
+# ---------- system_eq (Tenglamalar sistemasi) ----------
+# ============================================================
+def _make_system(x0, y0):
+    """
+    Berilgan (x0, y0) yechim uchun tasodifiy koeffitsientli 2 ta chiziqli
+    tenglama yaratadi va ularning matnini qaytaradi. Determinant (a*e - b*d)
+    nolga teng emasligi ta'minlanadi - shu bois sistema YAGONA yechimga ega.
+    """
+    while True:
+        a, b = random.randint(1, 6), random.randint(1, 6)
+        d, e = random.randint(1, 6), random.randint(1, 6)
+        if a * e - b * d != 0:
+            break
+    c = a * x0 + b * y0
+    f = d * x0 + e * y0
+    line1 = f"{a}x + {b}y = {c}"
+    line2 = f"{d}x + {e}y = {f}"
+    return line1, line2
+
+
+def ex_system_find_x(grade):
+    x0 = random.randint(-12, 12)
+    y0 = random.randint(-12, 12)
+    l1, l2 = _make_system(x0, y0)
+    return f"{l1}\n{l2}\nBerilgan tenglamalar sistemasidan x ning qiymatini toping.", x0
+
+
+def ex_system_find_y(grade):
+    x0 = random.randint(-12, 12)
+    y0 = random.randint(-12, 12)
+    l1, l2 = _make_system(x0, y0)
+    return f"{l1}\n{l2}\nBerilgan tenglamalar sistemasidan y ning qiymatini toping.", y0
+
+
+def ex_system_find_sum(grade):
+    x0 = random.randint(-10, 10)
+    y0 = random.randint(-10, 10)
+    l1, l2 = _make_system(x0, y0)
+    return f"{l1}\n{l2}\nBerilgan tenglamalar sistemasi yechimida x + y nechaga teng?", x0 + y0
+
+
+def ex_system_positive_only(grade):
+    # Faqat musbat yechimli sistema - hard darajada kattaroq sonlar bilan
+    x0 = random.randint(1, 15)
+    y0 = random.randint(1, 15)
+    l1, l2 = _make_system(x0, y0)
+    return f"{l1}\n{l2}\nBerilgan tenglamalar sistemasidan x ning qiymatini toping. (x, y > 0)", x0
+
+
+def ex_system_word_problem(grade):
+    # So'z masalasi ko'rinishida - ikki noma'lumli sistema
+    x0 = random.randint(2, 20)
+    y0 = random.randint(2, 20)
+    total = x0 + y0
+    diff_coef = random.randint(2, 5)
+    total2 = diff_coef * x0 + y0
+    return (
+        f"Ikki sonning yig'indisi {total} ga teng. Agar birinchi sonni {diff_coef} "
+        f"marta oshirib ikkinchisiga qo'shsak, {total2} hosil bo'ladi. Birinchi son "
+        f"(x) nechaga teng?\n(x + y = {total},  {diff_coef}x + y = {total2})",
+        x0,
+    )
+
+
+GEN_SYSTEM_EQ = [
+    (ex_system_find_x, MH_TIERS),
+    (ex_system_find_y, MH_TIERS),
+    (ex_system_find_sum, MH_TIERS),
+    (ex_system_positive_only, H_ONLY),
+    (ex_system_word_problem, MH_TIERS),
+]
+
+
+# ============================================================
 # ---------- triangle ----------
+# ============================================================
 def ex_triangle_area(grade):
-    lo, hi = _rng(grade, (4, 12), (6, 20), (10, 40))
+    lo, hi = _rng(grade, (4, 12), (10, 25), (20, 45))
     base, height = random.randint(lo, hi), random.randint(lo, hi)
     if (base * height) % 2 != 0:
         height += 1
@@ -1043,50 +1445,100 @@ def ex_triangle_area(grade):
 
 
 def ex_triangle_perimeter(grade):
-    lo, hi = _rng(grade, (5, 15), (8, 25), (15, 50))
+    lo, hi = _rng(grade, (5, 15), (12, 30), (25, 60))
     a, b, c = random.randint(lo, hi), random.randint(lo, hi), random.randint(lo, hi)
     return f"Tomonlari {a}, {b}, {c} bo'lgan uchburchakning perimetri?", a + b + c
 
 
 def ex_triangle_missing_side(grade):
-    lo, hi = _rng(grade, (5, 15), (8, 25), (15, 40))
+    lo, hi = _rng(grade, (5, 15), (10, 25), (20, 45))
     a, b, c = random.randint(lo, hi), random.randint(lo, hi), random.randint(lo, hi)
     p = a + b + c
     return f"Uchburchak perimetri {p}. Ikki tomoni {a} va {b} bo'lsa, uchinchi tomoni nechaga teng?", c
 
 
-GEN_TRIANGLE = [ex_triangle_area, ex_triangle_perimeter, ex_triangle_missing_side]
+def ex_triangle_right_pythagorean(grade):
+    # Pifagor teoremasi - to'g'ri burchakli uchburchak (8-9 sinf geometriya)
+    triples = [(3, 4, 5), (6, 8, 10), (5, 12, 13), (9, 12, 15), (8, 15, 17), (7, 24, 25), (20, 21, 29)]
+    a, b, c = random.choice(triples)
+    mult = random.randint(1, 3)
+    a, b, c = a * mult, b * mult, c * mult
+    if random.random() < 0.5:
+        return f"To'g'ri burchakli uchburchakda katetlar {a} va {b}. Gipotenuza nechaga teng? (Pifagor teoremasi)", c
+    return f"To'g'ri burchakli uchburchakda gipotenuza {c}, bir kateti {a}. Ikkinchi katet nechaga teng?", b
 
 
+def ex_triangle_height_from_area(grade):
+    lo, hi = _rng(grade, None, (8, 20), (15, 35))
+    base = random.randint(lo, hi)
+    height = random.randint(lo, hi)
+    area = base * height // 2 if (base * height) % 2 == 0 else base * (height + 1) // 2
+    height = height if (base * height) % 2 == 0 else height + 1
+    return f"Uchburchak yuzasi {area}, asosi {base}. Balandligi nechaga teng?", height
+
+
+GEN_TRIANGLE = [
+    (ex_triangle_area, ALL_TIERS),
+    (ex_triangle_perimeter, ALL_TIERS),
+    (ex_triangle_missing_side, ALL_TIERS),
+    (ex_triangle_right_pythagorean, MH_TIERS),
+    (ex_triangle_height_from_area, MH_TIERS),
+]
+
+
+# ============================================================
 # ---------- rectangle ----------
+# ============================================================
 def ex_rect_area(grade):
-    lo, hi = _rng(grade, (2, 15), (5, 25), (10, 50))
+    lo, hi = _rng(grade, (2, 15), (10, 30), (20, 55))
     a, b = random.randint(lo, hi), random.randint(lo, hi)
     return f"Tomonlari {a} va {b} bo'lgan to'rtburchak yuzasi?", a * b
 
 
 def ex_rect_perimeter(grade):
-    lo, hi = _rng(grade, (2, 15), (5, 25), (10, 50))
+    lo, hi = _rng(grade, (2, 15), (10, 30), (20, 55))
     a, b = random.randint(lo, hi), random.randint(lo, hi)
     return f"Tomonlari {a} va {b} bo'lgan to'rtburchak perimetri?", 2 * (a + b)
 
 
 def ex_rect_missing_side(grade):
-    lo, hi = _rng(grade, (3, 12), (5, 20), (8, 30))
+    lo, hi = _rng(grade, (3, 12), (8, 25), (15, 40))
     a, b = random.randint(lo, hi), random.randint(lo, hi)
     area = a * b
     return f"Yuzasi {area}, bir tomoni {a} bo'lgan to'rtburchakning ikkinchi tomonini toping.", b
 
 
-GEN_RECTANGLE = [ex_rect_area, ex_rect_perimeter, ex_rect_missing_side]
+def ex_rect_diagonal(grade):
+    # Diagonal - Pifagor teoremasi orqali (butun sonli uchliklar bilan)
+    triples = [(3, 4, 5), (6, 8, 10), (5, 12, 13), (9, 12, 15), (8, 15, 17)]
+    a, b, d = random.choice(triples)
+    mult = random.randint(1, 3)
+    a, b, d = a * mult, b * mult, d * mult
+    return f"To'g'ri to'rtburchak tomonlari {a} va {b}. Uning diagonali nechaga teng?", d
 
 
+def ex_rect_perimeter_from_area_side(grade):
+    lo, hi = _rng(grade, None, (8, 22), (15, 35))
+    a = random.randint(lo, hi)
+    b = random.randint(lo, hi)
+    area = a * b
+    return f"To'g'ri to'rtburchak yuzasi {area}, bir tomoni {a}. Uning perimetrini toping.", 2 * (a + b)
+
+
+GEN_RECTANGLE = [
+    (ex_rect_area, ALL_TIERS),
+    (ex_rect_perimeter, ALL_TIERS),
+    (ex_rect_missing_side, ALL_TIERS),
+    (ex_rect_diagonal, MH_TIERS),
+    (ex_rect_perimeter_from_area_side, MH_TIERS),
+]
+
+
+# ============================================================
 # ---------- circle ----------
-# π=22/7 taqribiy qiymatidan foydalanganda natija ANIQ butun son chiqishi uchun
-# radius doim 7 ga karrali bo'lishi shart. Yetarli xilma-xillik uchun keng
-# diapazondagi 7 karrali sonlardan foydalanamiz.
+# ============================================================
 def _circle_radius(grade):
-    k = random.randint(*_rng(grade, (1, 10), (1, 20), (1, 30)))
+    k = random.randint(*_rng(grade, (1, 10), (5, 25), (15, 40)))
     return 7 * k
 
 
@@ -1117,13 +1569,25 @@ def ex_circle_radius_from_area(grade):
     return f"Yuzasi {area} bo'lgan doiraning radiusi nechaga teng? (π=22/7 deb oling)", r
 
 
+def ex_circle_radius_from_circumference(grade):
+    r = _circle_radius(grade)
+    circ = int(2 * 22 * r / 7)
+    return f"Aylana uzunligi {circ} bo'lgan doiraning radiusi nechaga teng? (π=22/7 deb oling)", r
+
+
 GEN_CIRCLE = [
-    ex_circle_area, ex_circle_circumference, ex_circle_radius_from_diameter,
-    ex_circle_diameter_from_radius, ex_circle_radius_from_area,
+    (ex_circle_area, ALL_TIERS),
+    (ex_circle_circumference, ALL_TIERS),
+    (ex_circle_radius_from_diameter, {"easy"}),
+    (ex_circle_diameter_from_radius, {"easy"}),
+    (ex_circle_radius_from_area, MH_TIERS),
+    (ex_circle_radius_from_circumference, MH_TIERS),
 ]
 
 
+# ============================================================
 # ---------- ratio ----------
+# ============================================================
 def ex_ratio_proportion(grade):
     a, b, mult = random.randint(1, 10), random.randint(1, 10), random.randint(2, 10)
     return f"{a}:{b} nisbat {a*mult}:x ga teng bo'lsa, x = ?", b * mult
@@ -1147,12 +1611,37 @@ def ex_ratio_students(grade):
     return f"Sinfda o'g'il va qizlar soni nisbati {p1}:{p2}. O'g'il bolalar {boys} ta bo'lsa, qizlar nechta?", girls
 
 
-GEN_RATIO = [ex_ratio_proportion, ex_ratio_split, ex_ratio_students]
+def ex_ratio_three_part(grade):
+    # Uch qismli nisbat - 8-9 sinf uchun kuchliroq
+    p1, p2, p3 = random.randint(1, 6), random.randint(1, 6), random.randint(1, 6)
+    k = random.randint(2, 10)
+    total = (p1 + p2 + p3) * k
+    largest = max(p1, p2, p3) * k
+    return f"{total} sonini {p1}:{p2}:{p3} nisbatda uchga bo'lganda eng katta qism nechaga teng?", largest
 
 
+def ex_ratio_scale(grade):
+    # Masshtab / xarita masalasi
+    scale = random.choice([50, 100, 200, 500])
+    map_cm = random.randint(2, 15)
+    real = map_cm * scale
+    return f"Xaritada masshtab 1:{scale}. Xaritadagi {map_cm} sm masofa haqiqatda necha sm ga teng?", real
+
+
+GEN_RATIO = [
+    (ex_ratio_proportion, ALL_TIERS),
+    (ex_ratio_split, ALL_TIERS),
+    (ex_ratio_students, {"easy"}),
+    (ex_ratio_three_part, MH_TIERS),
+    (ex_ratio_scale, MH_TIERS),
+]
+
+
+# ============================================================
 # ---------- average ----------
+# ============================================================
 def ex_average_direct(grade):
-    lo, hi = _rng(grade, (1, 20), (1, 50), (1, 100))
+    lo, hi = _rng(grade, (1, 20), (10, 60), (20, 100))
     nums = [random.randint(lo, hi) for _ in range(3)]
     while sum(nums) % 3 != 0:
         nums = [random.randint(lo, hi) for _ in range(3)]
@@ -1160,7 +1649,7 @@ def ex_average_direct(grade):
 
 
 def ex_average_sum_from_avg(grade):
-    avg = random.randint(10, 60)
+    avg = random.randint(10, 70)
     n = random.choice([3, 4, 5, 6])
     return f"{n} ta sonning o'rtacha qiymati {avg}. Bu sonlarning yig'indisi nechaga teng?", avg * n
 
@@ -1174,19 +1663,48 @@ def ex_average_score(grade):
     return f"O'quvchi {n} ta nazoratdan {', '.join(map(str, scores))} ball oldi. O'rtacha bahosi nechaga teng?", sum(scores) // n
 
 
-GEN_AVERAGE = [ex_average_direct, ex_average_sum_from_avg, ex_average_score]
+def ex_average_find_missing(grade):
+    # (n-1) ta son va kerakli o'rtacha ma'lum, oxirgi noma'lum sonni topish -
+    # 8-9 sinf uchun teskari fikrlash talab qiladi
+    n = random.choice([3, 4, 5])
+    lo, hi = _rng(grade, None, (10, 60), (20, 100))
+    known = [random.randint(lo, hi) for _ in range(n - 1)]
+    target_avg = random.randint(lo, hi)
+    unknown = target_avg * n - sum(known)
+    if unknown < 0:
+        unknown = abs(unknown) + 5
+        target_avg = (sum(known) + unknown) // n
+        # aniqlik uchun o'rtacha butun chiqishini kafolatlaymiz
+        while (sum(known) + unknown) % n != 0:
+            unknown += 1
+        target_avg = (sum(known) + unknown) // n
+    return (
+        f"{', '.join(map(str, known))} sonlariga yana bitta son qo'shilib, {n} ta sonning "
+        f"o'rtachasi {target_avg} ga teng bo'lishi kerak. Qo'shiladigan son nechaga teng?",
+        unknown,
+    )
 
 
+GEN_AVERAGE = [
+    (ex_average_direct, ALL_TIERS),
+    (ex_average_sum_from_avg, ALL_TIERS),
+    (ex_average_score, {"easy"}),
+    (ex_average_find_missing, MH_TIERS),
+]
+
+
+# ============================================================
 # ---------- negative ----------
+# ============================================================
 def ex_negative_add(grade):
-    lo, hi = _rng(grade, (-20, -1), (-50, -1), (-99, -1))
+    lo, hi = _rng(grade, (-20, -1), (-60, -1), (-99, -1))
     a, b = random.randint(lo, hi), random.randint(1, abs(lo))
     op = random.choice(["+", "-"])
     return f"({a}) {op} {b}", (a + b if op == "+" else a - b)
 
 
 def ex_negative_mul(grade):
-    lo, hi = _rng(grade, (-12, -2), (-15, -2), (-20, -2))
+    lo, hi = _rng(grade, (-12, -2), (-18, -2), (-25, -2))
     a, b = random.randint(lo, hi), random.randint(2, 12)
     if random.random() < 0.5:
         b = -b
@@ -1194,7 +1712,7 @@ def ex_negative_mul(grade):
 
 
 def ex_negative_both(grade):
-    lo, hi = _rng(grade, (-30, -1), (-50, -1), (-99, -1))
+    lo, hi = _rng(grade, (-30, -1), (-60, -1), (-99, -1))
     a, b = random.randint(lo, hi), random.randint(lo, hi)
     op = random.choice(["+", "-"])
     return f"({a}) {op} ({b})", (a + b if op == "+" else a - b)
@@ -1208,37 +1726,115 @@ def ex_negative_temperature(grade):
     return f"Havo harorati {start}°C edi. Kechqurun {delta}° ga {op}. Hozir harorat necha daraja?", result
 
 
-GEN_NEGATIVE = [ex_negative_add, ex_negative_mul, ex_negative_both, ex_negative_temperature]
+def ex_negative_chain(grade):
+    # Ko'p qadamli manfiy sonlar zanjiri - 8-9 sinf uchun kuchliroq
+    start = random.randint(-30, 30)
+    n_ops = random.choice([3, 4])
+    val = start
+    parts = [str(start)]
+    for _ in range(n_ops):
+        op = random.choice(["+", "-"])
+        num = random.randint(1, 25)
+        parts.append(f"{op} {num}")
+        val = val + num if op == "+" else val - num
+    return " ".join(parts) + " = ?", val
 
 
+def ex_negative_mul_chain(grade):
+    # Bir nechta manfiy/musbat sonlarning ko'paytmasi - belgi qoidasini
+    # tushunishni talab qiladi (juft/toq manfiylar soni)
+    n_factors = random.choice([3, 4])
+    factors = []
+    result = 1
+    for _ in range(n_factors):
+        sign = random.choice([1, -1])
+        val = sign * random.randint(1, 6)
+        factors.append(val)
+        result *= val
+    text = " × ".join(f"({f})" if f < 0 else str(f) for f in factors)
+    return f"{text} = ?", result
+
+
+GEN_NEGATIVE = [
+    (ex_negative_add, ALL_TIERS),
+    (ex_negative_mul, ALL_TIERS),
+    (ex_negative_both, ALL_TIERS),
+    (ex_negative_temperature, {"easy"}),
+    (ex_negative_chain, MH_TIERS),
+    (ex_negative_mul_chain, MH_TIERS),
+]
+
+
+# ============================================================
 # ---------- speed ----------
+# ============================================================
 def ex_speed_distance(grade):
-    lo_s, hi_s = _rng(grade, (10, 30), (30, 80), (60, 150))
+    lo_s, hi_s = _rng(grade, (10, 30), (40, 90), (70, 160))
     speed, time = random.randint(lo_s, hi_s), random.randint(1, 8)
     return f"Tezligi {speed} km/soat bo'lgan mashina {time} soatda necha km yo'l bosadi?", speed * time
 
 
 def ex_speed_find_speed(grade):
     time = random.randint(2, 8)
-    lo_s, hi_s = _rng(grade, (10, 40), (30, 90), (50, 150))
+    lo_s, hi_s = _rng(grade, (10, 40), (40, 100), (60, 160))
     speed = random.randint(lo_s, hi_s)
     distance = speed * time
     return f"Mashina {distance} km yo'lni {time} soatda bosib o'tdi. Uning tezligi necha km/soat?", speed
 
 
 def ex_speed_find_time(grade):
-    lo_s, hi_s = _rng(grade, (10, 40), (30, 90), (50, 150))
+    lo_s, hi_s = _rng(grade, (10, 40), (40, 100), (60, 160))
     speed = random.randint(lo_s, hi_s)
     time = random.randint(1, 8)
     distance = speed * time
     return f"{distance} km masofani {speed} km/soat tezlik bilan necha soatda bosib o'tish mumkin?", time
 
 
-GEN_SPEED = [ex_speed_distance, ex_speed_find_speed, ex_speed_find_time]
+def ex_speed_meeting(grade):
+    # Qarama-qarshi harakat - ikki obyekt bir-biriga tomon yuradi (8-9 sinf klassik masalasi)
+    v1 = random.randint(40, 90)
+    v2 = random.randint(40, 90)
+    time = random.randint(2, 6)
+    distance = (v1 + v2) * time
+    return (
+        f"Ikki shahar orasidagi masofa {distance} km. Ikkita mashina bir vaqtda bir-biriga "
+        f"tomon yo'lga chiqdi: biri {v1} km/soat, ikkinchisi {v2} km/soat tezlikda. "
+        f"Ular necha soatdan keyin uchrashadi?",
+        time,
+    )
 
 
+def ex_speed_catchup(grade):
+    # Quvib o'tish masalasi (bir yo'nalishda, biri oldinda)
+    v_slow = random.randint(30, 60)
+    v_fast = v_slow + random.randint(10, 40)
+    time = random.randint(2, 6)
+    head_start = v_slow * time  # sekin ketayotgan qancha oldinda
+    catchup_time = head_start // (v_fast - v_slow)
+    while head_start % (v_fast - v_slow) != 0:
+        time += 1
+        head_start = v_slow * time
+        catchup_time = head_start // (v_fast - v_slow)
+    return (
+        f"Sekin mashina {v_slow} km/soat tezlikda {time} soat oldin yo'lga chiqqan. "
+        f"Endi undan {head_start} km orqada turgan tez mashina {v_fast} km/soat tezlikda yo'lga chiqdi. "
+        f"Tez mashina sekin mashinani necha soatdan keyin quvib yetadi?",
+        catchup_time,
+    )
+
+
+GEN_SPEED = [
+    (ex_speed_distance, ALL_TIERS),
+    (ex_speed_find_speed, ALL_TIERS),
+    (ex_speed_find_time, ALL_TIERS),
+    (ex_speed_meeting, MH_TIERS),
+    (ex_speed_catchup, H_ONLY),
+]
+
+
+# ============================================================
 # ---------- bank_percent ----------
-# deposit har doim 100 ga karrali bo'lgani uchun pct/100 * deposit har doim butun son.
+# ============================================================
 def _bank_deposit(grade):
     k = random.randint(*_rng(grade, (1, 20), (10, 100), (50, 500)))
     return 100 * k
@@ -1258,7 +1854,7 @@ def ex_bank_total(grade):
 
 def ex_bank_find_deposit(grade):
     pct = random.choice([4, 5, 10, 20, 25])
-    result = _bank_deposit(grade) // 10  # kichikroq, real bo'lishi uchun
+    result = _bank_deposit(grade) // 10
     if result == 0:
         result = 10
     deposit = result * 100 // pct
@@ -1266,23 +1862,33 @@ def ex_bank_find_deposit(grade):
 
 
 def ex_bank_two_years(grade):
-    # Oddiy foiz (yig'ma emas) asosida 2 yillik summa
     deposit = _bank_deposit(grade)
     pct = random.choice([2, 4, 5, 8, 10])
     total = deposit + 2 * (deposit * pct // 100)
     return f"{deposit} so'm depozitga har yili {pct}% oddiy foiz qo'shib borilsa, 2 yildan keyin hisobda qancha so'm bo'ladi?", total
 
 
-GEN_BANK_PERCENT = [ex_bank_interest, ex_bank_total, ex_bank_find_deposit, ex_bank_two_years]
+def ex_bank_compound(grade):
+    # Murakkab (bir-biriga qo'shiladigan) foiz - faqat hard daraja uchun
+    deposit = _bank_deposit(grade)
+    pct = random.choice([10, 20, 25])  # butun natija chiqishi uchun "toza" foizlar
+    year1 = deposit + deposit * pct // 100
+    year2 = year1 + year1 * pct // 100
+    return f"{deposit} so'm depozitga har yili {pct}% murakkab foiz qo'shilsa (foizga ham foiz qo'shilib boriladi), 2 yildan keyin hisobda qancha so'm bo'ladi?", year2
 
 
+GEN_BANK_PERCENT = [
+    (ex_bank_interest, MH_TIERS),
+    (ex_bank_total, MH_TIERS),
+    (ex_bank_find_deposit, MH_TIERS),
+    (ex_bank_two_years, MH_TIERS),
+    (ex_bank_compound, H_ONLY),
+]
+
+
+# ============================================================
 # ---------- trig ----------
-# MUHIM TUZATISH: asl kodda sin(30°) va cos(60°) noto'g'ri "0" deb hisoblangan edi,
-# aslida ularning qiymati 0.5 ga teng! Javob butun son bo'lishi kerakligi sababli,
-# bu yerda barcha qiymatlarni FOIZ ko'rinishida so'raymiz (masalan sin(90°)=100%),
-# shunda 0.5 kabi qiymatlar ham 50% sifatida to'g'ri va butun son bilan ifodalanadi.
-# Faqat matematik jihatdan ANIQ (irratsional bo'lmagan) qiymatlar ishlatiladi:
-# sin/cos ning 0°, 30°/60°, 90° dagi va tan ning 0°, 45° dagi qiymatlari.
+# ============================================================
 TRIG_PERCENT_FACTS = [
     ("sin(0°)", 0), ("cos(90°)", 0),
     ("sin(30°)", 50), ("cos(60°)", 50),
@@ -1303,7 +1909,6 @@ def ex_trig_value(grade):
 
 
 def ex_trig_identity(grade):
-    # sin^2 + cos^2 = 1 ayniyati asosida (foiz ko'rinishida: 100% = butun ayniyat)
     known = random.choice(["sin", "cos"])
     other = "cos" if known == "sin" else "sin"
     return (
@@ -1320,8 +1925,6 @@ def ex_trig_tan(grade):
 
 
 def ex_trig_pythagorean(grade):
-    # Katta emas, lekin trig bilan chambarchas bog'liq: to'g'ri burchakli
-    # uchburchakda Pifagor teoremasi (gipotenuza uchun butun sonli uchliklar)
     triples = [
         (3, 4, 5), (6, 8, 10), (5, 12, 13), (9, 12, 15), (8, 15, 17),
         (7, 24, 25), (10, 24, 26), (20, 21, 29), (12, 16, 20), (9, 40, 41),
@@ -1334,10 +1937,26 @@ def ex_trig_pythagorean(grade):
     return f"To'g'ri burchakli uchburchakda gipotenuza {c}, bir katet {known_cathetus}. Ikkinchi katet nechaga teng?", (a if missing_is_a else b)
 
 
-GEN_TRIG = [ex_trig_value, ex_trig_identity, ex_trig_tan, ex_trig_pythagorean]
+def ex_trig_sum_angles(grade):
+    # Uchburchak burchaklari yig'indisi 180° - trigonometriyaga tayyorgarlik
+    a1 = random.randint(20, 90)
+    a2 = random.randint(20, 150 - a1)  # a1+a2 <= 150 bo'lgani uchun a3 >= 30 (har doim musbat)
+    a3 = 180 - a1 - a2
+    return f"Uchburchak burchaklaridan ikkitasi {a1}° va {a2}°. Uchinchi burchak nechaga teng?", a3
 
 
+GEN_TRIG = [
+    (ex_trig_value, MH_TIERS),
+    (ex_trig_identity, MH_TIERS),
+    (ex_trig_tan, MH_TIERS),
+    (ex_trig_pythagorean, MH_TIERS),
+    (ex_trig_sum_angles, MH_TIERS),
+]
+
+
+# ============================================================
 # ---------- log ----------
+# ============================================================
 LOG_BASES = [2, 3, 4, 5, 6, 7, 10]
 
 
@@ -1370,7 +1989,6 @@ def ex_log_of_self(grade):
 
 
 def ex_log_addition_rule(grade):
-    # log_a(x) + log_a(y) = log_a(x*y)
     base = random.choice(LOG_BASES)
     p1, p2 = random.randint(1, 3), random.randint(1, 3)
     return (
@@ -1381,12 +1999,18 @@ def ex_log_addition_rule(grade):
 
 
 GEN_LOG = [
-    ex_log_direct, ex_log_find_base, ex_log_find_power,
-    ex_log_of_one, ex_log_of_self, ex_log_addition_rule,
+    (ex_log_direct, H_ONLY),
+    (ex_log_find_base, H_ONLY),
+    (ex_log_find_power, H_ONLY),
+    (ex_log_of_one, H_ONLY),
+    (ex_log_of_self, H_ONLY),
+    (ex_log_addition_rule, H_ONLY),
 ]
 
 
+# ============================================================
 # ---------- arith_prog ----------
+# ============================================================
 def ex_arith_next(grade):
     a1, d = random.randint(1, 15), random.randint(1, 8)
     return f"Arifmetik progressiya: a1={a1}, d={d}. a2 nechaga teng?", a1 + d
@@ -1410,10 +2034,25 @@ def ex_arith_find_d(grade):
     return f"Arifmetik progressiya: a1={a1}, a2={a2}. Ayirmasi (d) nechaga teng?", d
 
 
-GEN_ARITH_PROG = [ex_arith_next, ex_arith_nth, ex_arith_sum, ex_arith_find_d]
+def ex_arith_find_n(grade):
+    # Teskari masala: a_n ma'lum, n ni topish (kuchliroq mantiqiy fikrlash)
+    a1, d, n = random.randint(1, 10), random.randint(2, 8), random.randint(4, 12)
+    an = a1 + (n - 1) * d
+    return f"Arifmetik progressiya: a1={a1}, d={d}. Agar a_n = {an} bo'lsa, n nechaga teng?", n
 
 
+GEN_ARITH_PROG = [
+    (ex_arith_next, MH_TIERS),
+    (ex_arith_nth, MH_TIERS),
+    (ex_arith_sum, MH_TIERS),
+    (ex_arith_find_d, MH_TIERS),
+    (ex_arith_find_n, MH_TIERS),
+]
+
+
+# ============================================================
 # ---------- geom_prog ----------
+# ============================================================
 def ex_geom_next(grade):
     a1, q = random.randint(1, 6), random.randint(2, 3)
     return f"Geometrik progressiya: a1={a1}, q={q}. a2 nechaga teng?", a1 * q
@@ -1437,7 +2076,19 @@ def ex_geom_find_q(grade):
     return f"Geometrik progressiya: a1={a1}, a2={a2}. Maxraji (q) nechaga teng?", q
 
 
-GEN_GEOM_PROG = [ex_geom_next, ex_geom_nth, ex_geom_sum, ex_geom_find_q]
+def ex_geom_find_n(grade):
+    a1, q, n = random.randint(1, 4), random.randint(2, 3), random.randint(2, 5)
+    an = a1 * (q ** (n - 1))
+    return f"Geometrik progressiya: a1={a1}, q={q}. Agar a_n = {an} bo'lsa, n nechaga teng?", n
+
+
+GEN_GEOM_PROG = [
+    (ex_geom_next, MH_TIERS),
+    (ex_geom_nth, MH_TIERS),
+    (ex_geom_sum, MH_TIERS),
+    (ex_geom_find_q, MH_TIERS),
+    (ex_geom_find_n, MH_TIERS),
+]
 
 
 TOPIC_GENERATORS = {
@@ -1449,6 +2100,7 @@ TOPIC_GENERATORS = {
     "sqrt": GEN_SQRT,
     "linear_eq": GEN_LINEAR_EQ,
     "quad_eq": GEN_QUAD_EQ,
+    "system_eq": GEN_SYSTEM_EQ,
     "triangle": GEN_TRIANGLE,
     "rectangle": GEN_RECTANGLE,
     "circle": GEN_CIRCLE,
@@ -1466,11 +2118,18 @@ TOPIC_GENERATORS = {
 
 def generate_example(user_id, topic, grade="medium"):
     """
-    Berilgan mavzu/daraja uchun misol yaratadi. Har chaqiriqda tasodifiy
-    mantiqiy variant (style) tanlanadi va foydalanuvchining shu mavzudagi
-    so'nggi savollari bilan solishtirib, TAKRORLANMAYDIGAN savol qaytaradi.
+    Berilgan mavzu/daraja uchun misol yaratadi. Faqat SHU DARAJAGA mos
+    (tiers to'plamida bor) generatorlar orasidan tasodifiy tanlanadi - shu
+    tufayli 8-9 va 10-11 sinf o'quvchisiga hech qachon 5-7 sinf darajasidagi
+    "bolalarcha" misol chiqmaydi. Foydalanuvchining shu mavzudagi so'nggi
+    savollari bilan solishtirib, TAKRORLANMAYDIGAN savol qaytariladi.
     """
-    generators = TOPIC_GENERATORS[topic]
+    all_generators = TOPIC_GENERATORS[topic]
+    generators = [func for func, tiers in all_generators if grade in tiers]
+    if not generators:
+        # Ehtiyot chorasi: agar shu darajaga mos generator bo'lmasa, hammasidan foydalanamiz
+        generators = [func for func, _ in all_generators]
+
     history = get_topic_history(user_id, topic)
 
     text, answer = None, None
@@ -1483,13 +2142,15 @@ def generate_example(user_id, topic, grade="medium"):
             break
 
     if text is None:
-        # Barcha oson kombinatsiyalar tugagan bo'lsa (masalan trig/log kabi
+        # Barcha kombinatsiyalar tugagan bo'lsa (masalan trig/log kabi
         # cheklangan mavzularda) - eng eski tarixni tozalab, yangidan boshlaymiz
         history = set()
         gen_func = random.choice(generators)
         text, answer = gen_func(grade)
 
     save_to_history(user_id, topic, text)
+    return text, answer
+
     return text, answer
 
 
