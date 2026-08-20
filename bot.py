@@ -369,7 +369,7 @@ async def start_topic_question(user_id, first_name, topic, message=None, callbac
     """Berilgan mavzudan savol boshlaydi - matn xabar yoki callback orqali chaqirilishi mumkin."""
     user = get_user(user_id, first_name)
     example_text, answer = generate_example(topic, user["grade"])
-    options = generate_options(answer)
+    options = generate_options(answer, allow_negative=(answer < 0))
     update_user(user_id, current_topic=topic, current_answer=answer, current_mode="normal")
 
     text = (
@@ -485,19 +485,35 @@ def generate_example(topic, grade="medium"):
                 a, b = random.randint(5, 40), random.randint(5, 40)
                 return f"Ahmad {a} ta, Vali {b} ta qalam sotib oldi. Ular jami nechta qalam sotib olishdi?", a + b
             else:
-                a, b = random.randint(5, 30), random.randint(1, 30)
                 op = random.choice(["+", "-"])
+                if op == "-":
+                    a = random.randint(5, 30)
+                    b = random.randint(1, a)
+                else:
+                    a, b = random.randint(5, 30), random.randint(1, 30)
                 return f"{a} {op} {b}", (a + b if op == "+" else a - b)
         elif grade == "hard":
-            a, b, c = random.randint(100, 999), random.randint(50, 500), random.randint(20, 300)
-            op1, op2 = random.choice([("+", "-"), ("-", "+"), ("+", "+"), ("-", "-")])
-            val = a + b if op1 == "+" else a - b
-            val = val + c if op2 == "+" else val - c
+            a = random.randint(300, 999)
+            b = random.randint(50, min(500, a - 1))
+            after_first = a - b if random.random() < 0.5 else a + b
+            op1 = "-" if after_first == a - b else "+"
+            c = random.randint(20, min(300, after_first)) if after_first > 20 else random.randint(1, max(1, after_first))
+            op2 = random.choice(["+", "-"]) if after_first - c >= 0 else "+"
+            val = after_first + c if op2 == "+" else after_first - c
             return f"{a} {op1} {b} {op2} {c}", val
         else:
-            a, b = random.randint(50, 300), random.randint(1, 300)
-            op = random.choice(["+", "-"])
-            return f"{a} {op} {b}", (a + b if op == "+" else a - b)
+            if random.random() < 0.5:
+                op = random.choice(["+", "-"])
+                if op == "-":
+                    a = random.randint(50, 300)
+                    b = random.randint(1, a)
+                else:
+                    a, b = random.randint(50, 300), random.randint(1, 300)
+                return f"{a} {op} {b}", (a + b if op == "+" else a - b)
+            else:
+                a, b = random.randint(50, 200), random.randint(10, 150)
+                c = random.randint(10, a + b)
+                return f"Omborda {a} ta yashik bor edi. Yana {b} ta olib kelishdi, keyin {c} ta jo'natishdi. Omborda necha ta yashik qoldi?", a + b - c
 
     if topic == "mul_div":
         if grade == "easy":
@@ -516,24 +532,37 @@ def generate_example(topic, grade="medium"):
                     return f"{a} * {b}", a * b
                 return f"{a*b} / {b}", a
         elif grade == "hard":
-            c = random.randint(2, 9)
-            a = random.randint(2, 10) * c
-            b = random.randint(2, 12)
-            return f"({a} × {b}) ÷ {c}", (a * b) // c
-        else:
-            a, b = random.randint(2, 20), random.randint(2, 12)
-            op = random.choice(["*", "/"])
-            if op == "*":
-                return f"{a} * {b}", a * b
+            if random.random() < 0.5:
+                c = random.randint(2, 9)
+                a = random.randint(2, 10) * c
+                b = random.randint(2, 12)
+                return f"({a} × {b}) ÷ {c}", (a * b) // c
             else:
-                product = a * b
-                return f"{product} / {b}", a
+                shelf, box, items = random.randint(3, 8), random.randint(4, 10), random.randint(5, 15)
+                return f"Do'konda {shelf} ta tokcha bor, har tokchada {box} ta quti, har qutida {items} ta mahsulot bor. Jami nechta mahsulot bor?", shelf * box * items
+        else:
+            if random.random() < 0.5:
+                a, b = random.randint(2, 20), random.randint(2, 12)
+                op = random.choice(["*", "/"])
+                if op == "*":
+                    return f"{a} * {b}", a * b
+                else:
+                    product = a * b
+                    return f"{product} / {b}", a
+            else:
+                rows, cols = random.randint(4, 15), random.randint(4, 15)
+                return f"Sinfda {rows} ta qator bor, har qatorda {cols} tadan o'quvchi o'tiradi. Sinfda jami nechta o'quvchi bor?", rows * cols
 
     if topic == "percent":
         if grade == "easy":
-            base = random.choice([20, 40, 50, 80, 100, 200])
-            pct = random.choice([10, 20, 25, 50])
-            return f"{base} so'mlik narsaga {pct}% chegirma qilindi. Chegirma summasi qancha so'm?", base * pct // 100
+            if random.random() < 0.5:
+                base = random.choice([20, 40, 50, 80, 100, 200])
+                pct = random.choice([10, 20, 25, 50])
+                return f"{base} so'mlik narsaga {pct}% chegirma qilindi. Chegirma summasi qancha so'm?", base * pct // 100
+            else:
+                whole = random.choice([20, 40, 50, 80, 100])
+                pct = random.choice([10, 25, 50])
+                return f"{whole} ning {pct}% i nechaga teng?", whole * pct // 100
         elif grade == "hard":
             base = random.choice([200, 400, 500, 800, 1000, 1500, 2000])
             pct = random.choice([5, 10, 15, 20, 25])
@@ -542,64 +571,124 @@ def generate_example(topic, grade="medium"):
             else:
                 return f"Mahsulot narxi {base} so'm edi, keyin {pct}% arzonlashdi. Yangi narx qancha so'm?", base - base * pct // 100
         else:
-            base = random.choice([50, 100, 150, 200, 300, 400, 500])
-            pct = random.choice([5, 10, 15, 20, 25, 50])
-            return f"{base} ning {pct}% i nechaga teng?", base * pct // 100
+            if random.random() < 0.5:
+                base = random.choice([50, 100, 150, 200, 300, 400, 500])
+                pct = random.choice([5, 10, 15, 20, 25, 50])
+                return f"{base} ning {pct}% i nechaga teng?", base * pct // 100
+            else:
+                pct = random.choice([10, 20, 25, 40, 50])
+                whole = random.choice([20, 40, 50, 80, 100, 200])
+                part = whole * pct // 100
+                return f"{part} soni {whole} sonining necha foizini tashkil qiladi?", pct
 
     if topic == "fraction":
         if grade == "easy":
-            denom = random.choice([2, 3, 4])
-            num = random.randint(1, denom - 1)
-            k = random.randint(2, 6)
-            total = denom * k
-            return f"{total} sonining {num}/{denom} qismi nechaga teng?", num * total // denom
+            if random.random() < 0.5:
+                denom = random.choice([2, 3, 4])
+                num = random.randint(1, denom - 1)
+                k = random.randint(2, 6)
+                total = denom * k
+                return f"{total} sonining {num}/{denom} qismi nechaga teng?", num * total // denom
+            else:
+                denom = random.choice([2, 3, 4])
+                k = random.randint(2, 6)
+                total = denom * k
+                return f"{total} ni {denom} ga bo'lsak, natija nechaga teng?", total // denom
         elif grade == "hard":
-            denom1 = random.choice([2, 3, 4])
-            num1 = random.randint(1, denom1 - 1)
-            denom2 = random.choice([2, 3])
-            num2 = random.randint(1, denom2 - 1)
-            k = random.randint(2, 6)
-            total = denom1 * denom2 * k
-            mid = num1 * total // denom1
-            final = num2 * mid // denom2
-            return f"{total} sonining {num1}/{denom1} qismining yana {num2}/{denom2} qismi nechaga teng?", final
+            if random.random() < 0.5:
+                denom1 = random.choice([2, 3, 4])
+                num1 = random.randint(1, denom1 - 1)
+                denom2 = random.choice([2, 3])
+                num2 = random.randint(1, denom2 - 1)
+                k = random.randint(2, 6)
+                total = denom1 * denom2 * k
+                mid = num1 * total // denom1
+                final = num2 * mid // denom2
+                return f"{total} sonining {num1}/{denom1} qismining yana {num2}/{denom2} qismi nechaga teng?", final
+            else:
+                denom = random.choice([7, 9, 11, 12])
+                num = random.randint(1, denom - 1)
+                k = random.randint(3, 8)
+                total = denom * k
+                return f"{total} sonining {num}/{denom} qismi nechaga teng?", num * total // denom
         else:
-            denom = random.choice([2, 3, 4, 5, 6, 8, 10])
-            num = random.randint(1, denom - 1)
-            k = random.randint(2, 10)
-            total = denom * k
-            return f"{total} sonining {num}/{denom} qismi nechaga teng?", num * total // denom
+            if random.random() < 0.5:
+                denom = random.choice([2, 3, 4, 5, 6, 8, 10])
+                num = random.randint(1, denom - 1)
+                k = random.randint(2, 10)
+                total = denom * k
+                return f"{total} sonining {num}/{denom} qismi nechaga teng?", num * total // denom
+            else:
+                denom = random.choice([3, 4, 5])
+                num = random.randint(1, denom - 1)
+                k = random.randint(3, 12)
+                total = denom * k
+                return f"Sinfda {total} nafar o'quvchi bor, ularning {num}/{denom} qismi qiz. Sinfda nechta qiz bor?", num * total // denom
 
     if topic == "power":
         if grade == "easy":
-            a = random.randint(2, 10)
-            return f"{a}² = ?", a * a
+            if random.random() < 0.5:
+                a = random.randint(2, 10)
+                return f"{a}² = ?", a * a
+            else:
+                a = random.randint(2, 8)
+                return f"{a} ni o'z-o'ziga ko'paytirsak (kvadratga oshirsak), natija nechaga teng?", a * a
         elif grade == "hard":
-            a, b = random.randint(2, 9), random.randint(1, 9)
-            p = random.choice([2, 3])
-            return f"({a}+{b})^{p} = ?", (a + b) ** p
+            if random.random() < 0.5:
+                a, b = random.randint(2, 9), random.randint(1, 9)
+                p = random.choice([2, 3])
+                return f"({a}+{b})^{p} = ?", (a + b) ** p
+            else:
+                a = random.randint(2, 12)
+                return f"{a}³ = ?", a ** 3
         else:
-            a = random.randint(2, 15)
-            p = random.choice([2, 3])
-            return f"{a}^{p} = ?", a ** p
+            if random.random() < 0.5:
+                a = random.randint(2, 15)
+                p = random.choice([2, 3])
+                return f"{a}^{p} = ?", a ** p
+            else:
+                a, b = random.randint(2, 10), random.randint(2, 10)
+                return f"{a}² + {b}² = ?", a * a + b * b
 
     if topic == "sqrt":
         if grade == "easy":
-            a = random.choice([4, 9, 16, 25, 36, 49, 64, 81, 100])
-            return f"√{a} = ?", int(math.sqrt(a))
+            if random.random() < 0.5:
+                a = random.choice([4, 9, 16, 25, 36, 49, 64, 81, 100])
+                return f"√{a} = ?", int(math.sqrt(a))
+            else:
+                base = random.randint(2, 10)
+                return f"Qaysi son o'z-o'ziga ko'paytirilganda {base*base} ni beradi?", base
         elif grade == "hard":
-            base = random.randint(11, 20)
-            return f"√{base*base} = ?", base
+            if random.random() < 0.5:
+                base = random.randint(11, 20)
+                return f"√{base*base} = ?", base
+            else:
+                side = random.randint(15, 25)
+                area = side * side
+                return f"Kvadrat maydonning yuzasi {area} m². Uning tomoni necha metr?", side
         else:
-            a = random.choice([4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 225])
-            return f"√{a} = ?", int(math.sqrt(a))
+            if random.random() < 0.5:
+                a = random.choice([4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 225])
+                return f"√{a} = ?", int(math.sqrt(a))
+            else:
+                side = random.randint(4, 15)
+                area = side * side
+                return f"Kvadratning yuzasi {area}. Uning tomoni nechaga teng?", side
 
     if topic == "linear_eq":
         if grade == "easy":
-            x = random.randint(1, 15)
-            b = random.randint(1, 20)
-            c = x + b
-            return f"x + {b} = {c}, x = ?", x
+            if random.random() < 0.5:
+                x = random.randint(1, 15)
+                b = random.randint(1, 20)
+                c = x + b
+                return f"x + {b} = {c}, x = ?", x
+            else:
+                x = random.randint(1, 15)
+                b = random.randint(1, 15)
+                c = x - b if x > b else x + b
+                if x - b >= 1:
+                    return f"x - {b} = {x-b}, x = ?", x
+                return f"x + {b} = {c}, x = ?", x
         elif grade == "hard":
             x = random.randint(1, 15)
             a = random.randint(2, 8)
@@ -612,16 +701,27 @@ def generate_example(topic, grade="medium"):
             sign_d = f"+ {d}" if d >= 0 else f"- {abs(d)}"
             return f"{a}x {sign_b} = {c}x {sign_d}, x = ?", x
         else:
-            x = random.randint(1, 20)
-            a = random.randint(2, 10)
-            b = random.randint(1, 30)
-            c = a * x + b
-            return f"{a}x + {b} = {c}, x = ?", x
+            if random.random() < 0.5:
+                x = random.randint(1, 20)
+                a = random.randint(2, 10)
+                b = random.randint(1, 30)
+                c = a * x + b
+                return f"{a}x + {b} = {c}, x = ?", x
+            else:
+                x = random.randint(1, 20)
+                a = random.randint(2, 6)
+                b = random.randint(1, 20)
+                c = a * x + b
+                return f"Bir songa {a} marta ko'paytirib, {b} qo'shilganda {c} hosil bo'ldi. Shu son nechaga teng?", x
 
     if topic == "quad_eq":
         if grade == "easy":
-            x = random.randint(2, 12)
-            return f"x² = {x*x} (x > 0), x = ?", x
+            if random.random() < 0.5:
+                x = random.randint(2, 12)
+                return f"x² = {x*x} (x > 0), x = ?", x
+            else:
+                x = random.randint(2, 10)
+                return f"(x - {x})² = 0 tenglamaning ildizi x = ?", x
         elif grade == "hard":
             r1, r2 = random.randint(1, 12), random.randint(1, 12)
             b, c = -(r1 + r2), r1 * r2
@@ -636,72 +736,149 @@ def generate_example(topic, grade="medium"):
             b, c = -(r1 + r2), r1 * r2
             sign_b = f"+ {b}x" if b >= 0 else f"- {abs(b)}x"
             sign_c = f"+ {c}" if c >= 0 else f"- {abs(c)}"
-            return f"x² {sign_b} {sign_c} = 0 tenglamaning eng katta ildizi?", max(r1, r2)
+            if random.random() < 0.5:
+                return f"x² {sign_b} {sign_c} = 0 tenglamaning eng katta ildizi?", max(r1, r2)
+            else:
+                return f"x² {sign_b} {sign_c} = 0 tenglamaning eng kichik ildizi?", min(r1, r2)
 
     if topic == "triangle":
         if grade == "easy":
-            base, height = random.randint(4, 12), random.randint(4, 12)
-            return f"Asosi {base}, balandligi {height} bo'lgan uchburchak yuzasi?", base * height // 2
+            if random.random() < 0.5:
+                base, height = random.randint(4, 12), random.randint(4, 12)
+                return f"Asosi {base}, balandligi {height} bo'lgan uchburchak yuzasi?", base * height // 2
+            else:
+                a, b, c = random.randint(3, 10), random.randint(3, 10), random.randint(3, 10)
+                return f"Tomonlari {a}, {b}, {c} bo'lgan uchburchakning perimetri?", a + b + c
         elif grade == "hard":
-            a, b, c = random.randint(5, 20), random.randint(5, 20), random.randint(5, 20)
-            return f"Tomonlari {a}, {b}, {c} bo'lgan uchburchakning perimetri?", a + b + c
+            if random.random() < 0.5:
+                a, b, c = random.randint(5, 20), random.randint(5, 20), random.randint(5, 20)
+                return f"Tomonlari {a}, {b}, {c} bo'lgan uchburchakning perimetri?", a + b + c
+            else:
+                base, height = random.randint(10, 30), random.randint(10, 30)
+                area = base * height // 2
+                return f"Uchburchak yuzasi {area}, asosi {base}. Balandligi nechaga teng?", height
         else:
-            base, height = random.randint(4, 20), random.randint(4, 20)
-            return f"Asosi {base}, balandligi {height} bo'lgan uchburchak yuzasi?", base * height // 2
+            if random.random() < 0.5:
+                base, height = random.randint(4, 20), random.randint(4, 20)
+                return f"Asosi {base}, balandligi {height} bo'lgan uchburchak yuzasi?", base * height // 2
+            else:
+                a, b, c = random.randint(5, 15), random.randint(5, 15), random.randint(5, 15)
+                return f"Tomonlari {a}, {b}, {c} bo'lgan uchburchakning perimetri?", a + b + c
 
     if topic == "rectangle":
         if grade == "easy":
-            a, b = random.randint(2, 12), random.randint(2, 12)
-            return f"Tomonlari {a} va {b} bo'lgan to'rtburchak yuzasi?", a * b
+            if random.random() < 0.5:
+                a, b = random.randint(2, 12), random.randint(2, 12)
+                return f"Tomonlari {a} va {b} bo'lgan to'rtburchak yuzasi?", a * b
+            else:
+                a, b = random.randint(3, 12), random.randint(3, 12)
+                return f"Tomonlari {a} va {b} bo'lgan to'rtburchakning perimetri?", 2 * (a + b)
         elif grade == "hard":
-            a, b = random.randint(3, 15), random.randint(3, 15)
-            area = a * b
-            return f"Yuzasi {area}, bir tomoni {a} bo'lgan to'rtburchakning perimetrini toping.", 2 * (a + b)
+            if random.random() < 0.5:
+                a, b = random.randint(3, 15), random.randint(3, 15)
+                area = a * b
+                return f"Yuzasi {area}, bir tomoni {a} bo'lgan to'rtburchakning perimetrini toping.", 2 * (a + b)
+            else:
+                a, b = random.randint(3, 15), random.randint(3, 15)
+                perimeter = 2 * (a + b)
+                return f"Perimetri {perimeter}, bir tomoni {a} bo'lgan to'rtburchakning yuzasini toping.", a * b
         else:
-            a, b = random.randint(2, 20), random.randint(2, 20)
-            return f"Tomonlari {a} va {b} bo'lgan to'rtburchak yuzasi?", a * b
+            if random.random() < 0.5:
+                a, b = random.randint(2, 20), random.randint(2, 20)
+                return f"Tomonlari {a} va {b} bo'lgan to'rtburchak yuzasi?", a * b
+            else:
+                a, b = random.randint(3, 20), random.randint(3, 20)
+                return f"Tomonlari {a} va {b} bo'lgan to'rtburchakning perimetri?", 2 * (a + b)
 
     if topic == "circle":
         if grade == "easy":
             r = random.choice([7, 14])
-            return f"Radiusi {r} bo'lgan doira yuzasi (π=22/7 deb oling)?", int(22/7 * r * r)
+            if random.random() < 0.5:
+                return f"Radiusi {r} bo'lgan doira yuzasi (π=22/7 deb oling)?", int(22/7 * r * r)
+            else:
+                return f"Radiusi {r} bo'lgan doiraning aylana uzunligi (π=22/7 deb oling)?", int(2 * 22/7 * r)
         elif grade == "hard":
-            r = random.choice([7, 14, 21, 28, 35])
-            return f"Radiusi {r} bo'lgan doiraning aylana uzunligi (π=22/7 deb oling)?", int(2 * 22/7 * r)
+            if random.random() < 0.5:
+                r = random.choice([7, 14, 21, 28, 35])
+                return f"Radiusi {r} bo'lgan doiraning aylana uzunligi (π=22/7 deb oling)?", int(2 * 22/7 * r)
+            else:
+                r = random.choice([7, 14, 21, 28])
+                return f"Radiusi {r} bo'lgan doiraning yuzasi (π=22/7 deb oling)?", int(22/7 * r * r)
         else:
             r = random.choice([7, 14, 21])
-            return f"Radiusi {r} bo'lgan doira yuzasi (π=22/7 deb oling)?", int(22/7 * r * r)
+            if random.random() < 0.5:
+                return f"Radiusi {r} bo'lgan doira yuzasi (π=22/7 deb oling)?", int(22/7 * r * r)
+            else:
+                return f"Radiusi {r} bo'lgan doiraning aylana uzunligi (π=22/7 deb oling)?", int(2 * 22/7 * r)
 
     if topic == "ratio":
         if grade == "easy":
-            a, b, mult = random.randint(1, 6), random.randint(1, 6), random.randint(2, 6)
-            return f"{a}:{b} nisbat {a*mult}:x ga teng bo'lsa, x = ?", b * mult
+            if random.random() < 0.5:
+                a, b, mult = random.randint(1, 6), random.randint(1, 6), random.randint(2, 6)
+                return f"{a}:{b} nisbat {a*mult}:x ga teng bo'lsa, x = ?", b * mult
+            else:
+                p1, p2 = random.randint(1, 4), random.randint(1, 4)
+                while p1 == p2:
+                    p2 = random.randint(1, 4)
+                k = random.randint(2, 6)
+                total = (p1 + p2) * k
+                return f"{total} sonini {p1}:{p2} nisbatda ulashganda kichik qism nechaga teng?", min(p1, p2) * k
         elif grade == "hard":
-            p1, p2 = random.randint(1, 6), random.randint(1, 6)
-            while p1 == p2:
-                p2 = random.randint(1, 6)
-            k = random.randint(2, 10)
-            total = (p1 + p2) * k
-            return f"{total} sonini {p1}:{p2} nisbatda ulashganda kichik qism nechaga teng?", min(p1, p2) * k
+            if random.random() < 0.5:
+                p1, p2 = random.randint(1, 6), random.randint(1, 6)
+                while p1 == p2:
+                    p2 = random.randint(1, 6)
+                k = random.randint(2, 10)
+                total = (p1 + p2) * k
+                return f"{total} sonini {p1}:{p2} nisbatda ulashganda kichik qism nechaga teng?", min(p1, p2) * k
+            else:
+                p1, p2, p3 = random.randint(1, 5), random.randint(1, 5), random.randint(1, 5)
+                k = random.randint(2, 8)
+                total = (p1 + p2 + p3) * k
+                return f"{total} sonini {p1}:{p2}:{p3} nisbatda ulashganda eng katta qism nechaga teng?", max(p1, p2, p3) * k
         else:
-            a, b, mult = random.randint(1, 10), random.randint(1, 10), random.randint(2, 10)
-            return f"{a}:{b} nisbat {a*mult}:x ga teng bo'lsa, x = ?", b * mult
+            if random.random() < 0.5:
+                a, b, mult = random.randint(1, 10), random.randint(1, 10), random.randint(2, 10)
+                return f"{a}:{b} nisbat {a*mult}:x ga teng bo'lsa, x = ?", b * mult
+            else:
+                p1, p2 = random.randint(1, 8), random.randint(1, 8)
+                while p1 == p2:
+                    p2 = random.randint(1, 8)
+                k = random.randint(2, 8)
+                total = (p1 + p2) * k
+                return f"{total} sonini {p1}:{p2} nisbatda ulashganda katta qism nechaga teng?", max(p1, p2) * k
 
     if topic == "average":
         if grade == "easy":
-            nums = [random.randint(1, 20) for _ in range(3)]
-            while sum(nums) % 3 != 0:
+            if random.random() < 0.5:
                 nums = [random.randint(1, 20) for _ in range(3)]
-            return f"{', '.join(map(str, nums))} sonlarining o'rtacha qiymati?", sum(nums) // 3
+                while sum(nums) % 3 != 0:
+                    nums = [random.randint(1, 20) for _ in range(3)]
+                return f"{', '.join(map(str, nums))} sonlarining o'rtacha qiymati?", sum(nums) // 3
+            else:
+                a, b = random.randint(1, 30), random.randint(1, 30)
+                while (a + b) % 2 != 0:
+                    b = random.randint(1, 30)
+                return f"{a} va {b} sonlarining o'rtacha qiymati?", (a + b) // 2
         elif grade == "hard":
-            avg = random.randint(10, 50)
-            n = random.choice([4, 5, 6])
-            return f"{n} ta sonning o'rtacha qiymati {avg}. Bu sonlarning yig'indisi nechaga teng?", avg * n
+            if random.random() < 0.5:
+                avg = random.randint(10, 50)
+                n = random.choice([4, 5, 6])
+                return f"{n} ta sonning o'rtacha qiymati {avg}. Bu sonlarning yig'indisi nechaga teng?", avg * n
+            else:
+                nums = [random.randint(10, 60) for _ in range(5)]
+                while sum(nums) % 5 != 0:
+                    nums = [random.randint(10, 60) for _ in range(5)]
+                return f"{', '.join(map(str, nums))} sonlarining o'rtacha qiymati?", sum(nums) // 5
         else:
-            nums = [random.randint(1, 50) for _ in range(3)]
-            while sum(nums) % 3 != 0:
+            if random.random() < 0.5:
                 nums = [random.randint(1, 50) for _ in range(3)]
-            return f"{', '.join(map(str, nums))} sonlarining o'rtacha qiymati?", sum(nums) // 3
+                while sum(nums) % 3 != 0:
+                    nums = [random.randint(1, 50) for _ in range(3)]
+                return f"{', '.join(map(str, nums))} sonlarining o'rtacha qiymati?", sum(nums) // 3
+            else:
+                avg = random.randint(5, 40)
+                return f"3 ta sonning o'rtacha qiymati {avg}. Bu sonlarning yig'indisi nechaga teng?", avg * 3
 
     if topic == "negative":
         if grade == "easy":
@@ -709,38 +886,82 @@ def generate_example(topic, grade="medium"):
             op = random.choice(["+", "-"])
             return f"({a}) {op} {b}", (a + b if op == "+" else a - b)
         elif grade == "hard":
-            a, b = random.randint(-15, -2), random.randint(2, 12)
-            return f"({a}) × {b} = ?", a * b
+            if random.random() < 0.5:
+                a, b = random.randint(-15, -2), random.randint(2, 12)
+                return f"({a}) × {b} = ?", a * b
+            else:
+                a, b, c = random.randint(-30, -1), random.randint(-30, 30), random.randint(-20, 20)
+                op1, op2 = random.choice([("+", "-"), ("-", "+"), ("+", "+")])
+                val = a + b if op1 == "+" else a - b
+                val = val + c if op2 == "+" else val - c
+                return f"({a}) {op1} ({b}) {op2} ({c})", val
         else:
-            a, b = random.randint(-50, -1), random.randint(-50, 50)
-            op = random.choice(["+", "-"])
-            return f"({a}) {op} ({b})", (a + b if op == "+" else a - b)
+            if random.random() < 0.5:
+                a, b = random.randint(-50, -1), random.randint(-50, 50)
+                op = random.choice(["+", "-"])
+                return f"({a}) {op} ({b})", (a + b if op == "+" else a - b)
+            else:
+                temp = random.randint(-25, -3)
+                change = random.randint(2, 20)
+                return f"Harorat {temp}° edi, keyin {change}° ga ko'tarildi. Hozirgi harorat necha daraja?", temp + change
 
     if topic == "speed":
         if grade == "easy":
-            speed, time = random.randint(20, 60), random.randint(1, 4)
-            return f"Tezligi {speed} km/soat bo'lgan velosipedchi {time} soatda necha km yo'l bosadi?", speed * time
+            if random.random() < 0.5:
+                speed, time = random.randint(20, 60), random.randint(1, 4)
+                return f"Tezligi {speed} km/soat bo'lgan velosipedchi {time} soatda necha km yo'l bosadi?", speed * time
+            else:
+                speed, time = random.randint(10, 40), random.randint(2, 5)
+                return f"Piyoda soatiga {speed} km tezlik bilan yursa, {time} soatda necha km yuradi?", speed * time
         elif grade == "hard":
-            time, speed = random.randint(2, 8), random.randint(30, 120)
-            distance = speed * time
-            return f"Mashina {distance} km yo'lni {time} soatda bosib o'tdi. Uning tezligi necha km/soat?", speed
+            if random.random() < 0.5:
+                time, speed = random.randint(2, 8), random.randint(30, 120)
+                distance = speed * time
+                return f"Mashina {distance} km yo'lni {time} soatda bosib o'tdi. Uning tezligi necha km/soat?", speed
+            else:
+                speed = random.randint(20, 100)
+                time = random.randint(2, 8)
+                distance = speed * time
+                return f"Poyezd {distance} km yo'lni soatiga {speed} km tezlik bilan necha soatda bosib o'tadi?", time
         else:
-            speed, time = random.randint(40, 120), random.randint(2, 6)
-            return f"Tezligi {speed} km/soat bo'lgan mashina {time} soatda necha km yo'l bosadi?", speed * time
+            if random.random() < 0.5:
+                speed, time = random.randint(40, 120), random.randint(2, 6)
+                return f"Tezligi {speed} km/soat bo'lgan mashina {time} soatda necha km yo'l bosadi?", speed * time
+            else:
+                time = random.randint(2, 8)
+                speed = random.randint(20, 80)
+                distance = speed * time
+                return f"Odam {distance} km yo'lni soatiga {speed} km tezlik bilan necha soatda bosib o'tadi?", time
 
     if topic == "bank_percent":
         if grade == "easy":
-            deposit = random.choice([100, 200, 500, 1000])
-            pct = random.choice([10, 20])
-            return f"{deposit} so'm depozitga {pct}% foiz qo'shilsa, foiz summasi qancha so'm?", deposit * pct // 100
+            if random.random() < 0.5:
+                deposit = random.choice([100, 200, 500, 1000])
+                pct = random.choice([10, 20])
+                return f"{deposit} so'm depozitga {pct}% foiz qo'shilsa, foiz summasi qancha so'm?", deposit * pct // 100
+            else:
+                price = random.choice([100, 200, 500])
+                pct = random.choice([10, 20, 50])
+                return f"{price} so'mlik o'yinchoqqa {pct}% ustama qo'shilsa, ustama summasi qancha so'm?", price * pct // 100
         elif grade == "hard":
-            deposit = random.choice([2000, 5000, 10000, 20000])
-            pct = random.choice([5, 10, 15, 20])
-            return f"{deposit} so'm depozitga {pct}% yillik foiz qo'shilsa, 1 yildan keyin hisobdagi umumiy summa qancha bo'ladi?", deposit + deposit * pct // 100
+            if random.random() < 0.5:
+                deposit = random.choice([2000, 5000, 10000, 20000])
+                pct = random.choice([5, 10, 15, 20])
+                return f"{deposit} so'm depozitga {pct}% yillik foiz qo'shilsa, 1 yildan keyin hisobdagi umumiy summa qancha bo'ladi?", deposit + deposit * pct // 100
+            else:
+                deposit = random.choice([2000, 4000, 5000, 8000])
+                pct = random.choice([5, 10, 25])
+                return f"{deposit} so'm depozitdan {pct}% chiqim qilinsa, hisobda qancha so'm qoladi?", deposit - deposit * pct // 100
         else:
-            deposit = random.choice([1000, 2000, 5000, 10000])
-            pct = random.choice([5, 10, 20])
-            return f"{deposit} so'm depozitga {pct}% yillik foiz qo'shilsa, 1 yildan keyin qancha foiz summasi qo'shiladi?", deposit * pct // 100
+            if random.random() < 0.5:
+                deposit = random.choice([1000, 2000, 5000, 10000])
+                pct = random.choice([5, 10, 20])
+                return f"{deposit} so'm depozitga {pct}% yillik foiz qo'shilsa, 1 yildan keyin qancha foiz summasi qo'shiladi?", deposit * pct // 100
+            else:
+                pct = random.choice([5, 10, 20])
+                deposit = random.choice([1000, 2000, 5000]) * random.choice([1, 2])
+                interest = deposit * pct // 100
+                return f"{deposit} so'm depozitga foiz qo'shilganda {interest} so'm foiz olindi. Foiz stavkasi necha foiz edi?", pct
 
     if topic == "trig":
         if grade == "easy":
@@ -756,39 +977,73 @@ def generate_example(topic, grade="medium"):
         if grade == "easy":
             base = random.choice([2, 10])
             p = random.randint(1, 3)
-            return f"log{base}({base**p}) = ?", p
+            if random.random() < 0.5:
+                return f"log{base}({base**p}) = ?", p
+            else:
+                return f"{base} ni necha marta o'ziga ko'paytirsak {base**p} hosil bo'ladi?", p
         elif grade == "hard":
             base = random.choice([2, 3])
             p = random.randint(2, 4)
-            return f"log_x({base**p}) = {p} bo'lsa, x ni toping.", base
+            if random.random() < 0.5:
+                return f"log_x({base**p}) = {p} bo'lsa, x ni toping.", base
+            else:
+                p2 = random.randint(2, 4)
+                return f"log{base}(x) = {p2} bo'lsa, x ni toping.", base ** p2
         else:
             base = random.choice([2, 3, 10])
             p = random.randint(1, 4)
-            return f"log{base}({base**p}) = ?", p
+            if random.random() < 0.5:
+                return f"log{base}({base**p}) = ?", p
+            else:
+                return f"log{base}(x) = {p} bo'lsa, x ni toping.", base ** p
 
     if topic == "arith_prog":
         if grade == "easy":
             a1, d = random.randint(1, 10), random.randint(1, 5)
-            return f"Arifmetik progressiya: a1={a1}, d={d}. a2 nechaga teng?", a1 + d
+            if random.random() < 0.5:
+                return f"Arifmetik progressiya: a1={a1}, d={d}. a2 nechaga teng?", a1 + d
+            else:
+                return f"Arifmetik progressiya: a1={a1}, d={d}. a3 nechaga teng?", a1 + 2 * d
         elif grade == "hard":
-            a1, d, n = random.randint(1, 10), random.randint(1, 8), random.randint(3, 10)
-            sn = n * (2 * a1 + (n - 1) * d) // 2
-            return f"Arifmetik progressiya: a1={a1}, d={d}. Birinchi {n} ta hadning yig'indisi (S{n}) nechaga teng?", sn
+            if random.random() < 0.5:
+                a1, d, n = random.randint(1, 10), random.randint(1, 8), random.randint(3, 10)
+                sn = n * (2 * a1 + (n - 1) * d) // 2
+                return f"Arifmetik progressiya: a1={a1}, d={d}. Birinchi {n} ta hadning yig'indisi (S{n}) nechaga teng?", sn
+            else:
+                a1, an, n = random.randint(1, 10), 0, random.randint(4, 10)
+                d = random.randint(1, 8)
+                an = a1 + (n - 1) * d
+                return f"Arifmetik progressiya: a1={a1}, a{n}={an}. d (ayirma) nechaga teng?", d
         else:
             a1, d, n = random.randint(1, 10), random.randint(1, 10), random.randint(3, 8)
-            return f"Arifmetik progressiya: a1={a1}, d={d}. a{n} nechaga teng?", a1 + (n - 1) * d
+            if random.random() < 0.5:
+                return f"Arifmetik progressiya: a1={a1}, d={d}. a{n} nechaga teng?", a1 + (n - 1) * d
+            else:
+                return f"Ishchi 1-oyda {a1} dona mahsulot, har keyingi oyda {d} donaga ko'proq ishlab chiqaradi. {n}-oyda nechta mahsulot ishlab chiqaradi?", a1 + (n - 1) * d
 
     if topic == "geom_prog":
         if grade == "easy":
             a1, q = random.randint(1, 5), random.randint(2, 3)
-            return f"Geometrik progressiya: a1={a1}, q={q}. a2 nechaga teng?", a1 * q
+            if random.random() < 0.5:
+                return f"Geometrik progressiya: a1={a1}, q={q}. a2 nechaga teng?", a1 * q
+            else:
+                return f"Geometrik progressiya: a1={a1}, q={q}. a3 nechaga teng?", a1 * q * q
         elif grade == "hard":
-            a1, q, n = random.randint(1, 3), random.choice([2, 3]), random.randint(3, 5)
-            sn = a1 * (q ** n - 1) // (q - 1)
-            return f"Geometrik progressiya: a1={a1}, q={q}. Birinchi {n} ta hadning yig'indisi (S{n}) nechaga teng?", sn
+            if random.random() < 0.5:
+                a1, q, n = random.randint(1, 3), random.choice([2, 3]), random.randint(3, 5)
+                sn = a1 * (q ** n - 1) // (q - 1)
+                return f"Geometrik progressiya: a1={a1}, q={q}. Birinchi {n} ta hadning yig'indisi (S{n}) nechaga teng?", sn
+            else:
+                a1, q = random.randint(1, 4), random.choice([2, 3])
+                n = random.randint(3, 5)
+                an = a1 * (q ** (n - 1))
+                return f"Geometrik progressiya: a1={a1}, a{n}={an}. q (maxraj) nechaga teng?", q
         else:
             a1, q, n = random.randint(1, 5), random.randint(2, 3), random.randint(2, 5)
-            return f"Geometrik progressiya: a1={a1}, q={q}. a{n} nechaga teng?", a1 * (q ** (n - 1))
+            if random.random() < 0.5:
+                return f"Geometrik progressiya: a1={a1}, q={q}. a{n} nechaga teng?", a1 * (q ** (n - 1))
+            else:
+                return f"Bakteriya soni har soatda {q} martaga ko'payadi, boshida {a1} ta bo'lgan. {n}-soatdan keyin nechta bakteriya bo'ladi?", a1 * (q ** (n - 1))
 
 
 def get_hint_keyboard(topic):
@@ -797,17 +1052,43 @@ def get_hint_keyboard(topic):
     return builder.as_markup()
 
 
-def generate_options(answer):
-    """To'g'ri javob atrofida 3 ta noto'g'ri variant yaratadi."""
+def generate_options(answer, allow_negative=False):
+    """To'g'ri javob atrofida 3 ta mantiqiy noto'g'ri variant yaratadi.
+    Javobning kattaligiga mos masshtabda, va mantiqsiz (masalan manfiy
+    sanoq) variantlarni bermaydi."""
     options = {answer}
-    attempts = 0
-    while len(options) < 4 and attempts < 30:
-        attempts += 1
-        delta = random.choice([-20, -10, -5, -3, -2, -1, 1, 2, 3, 5, 10, 20])
-        candidate = answer + delta
-        if candidate not in options:
+    magnitude = abs(answer)
+
+    if magnitude <= 3:
+        # Juda kichik javoblar uchun (masalan trigonometriya: 0 yoki 1)
+        pool = [answer - 2, answer - 1, answer + 1, answer + 2, answer + 3]
+        pool = [c for c in pool if c != answer and (allow_negative or c >= 0)]
+        random.shuffle(pool)
+        for c in pool:
+            if len(options) >= 4:
+                break
+            options.add(c)
+    else:
+        step = max(1, magnitude // 10)
+        attempts = 0
+        while len(options) < 4 and attempts < 60:
+            attempts += 1
+            delta = random.choice([-3, -2, -1, 1, 2, 3]) * random.choice([1, step, step * 2])
+            candidate = answer + delta
+            if candidate == answer:
+                continue
+            if candidate < 0 and not allow_negative:
+                candidate = answer + abs(delta)
             options.add(candidate)
-    options = list(options)
+
+    # Zaxira: agar hali ham 4 taga yetmasa, ketma-ket sonlar bilan to'ldiramiz
+    filler = answer + 4
+    while len(options) < 4:
+        if filler not in options and (allow_negative or filler >= 0):
+            options.add(filler)
+        filler += 1
+
+    options = list(options)[:4]
     random.shuffle(options)
     return options
 
@@ -906,7 +1187,7 @@ async def topic_chosen(callback: types.CallbackQuery):
 
     topic_name = TOPICS[topic]
     example_text, answer = generate_example(topic, user["grade"])
-    options = generate_options(answer)
+    options = generate_options(answer, allow_negative=(answer < 0))
 
     update_user(user_id, current_topic=topic, current_answer=answer, current_mode="normal")
 
@@ -964,7 +1245,7 @@ async def answer_button_handler(callback: types.CallbackQuery):
 
     effective_grade = "hard" if mode == "challenge" else user["grade"]
     example_text, answer = generate_example(next_topic, effective_grade)
-    options = generate_options(answer)
+    options = generate_options(answer, allow_negative=(answer < 0))
     update_user(user_id, current_topic=next_topic, current_answer=answer)
 
     topic_label = f" ({TOPICS[next_topic]})" if mode in ("random", "challenge") else ""
@@ -991,7 +1272,7 @@ async def random_handler(message: types.Message):
 
     topic = random.choice(list(TOPICS.keys()))
     example_text, answer = generate_example(topic, user["grade"])
-    options = generate_options(answer)
+    options = generate_options(answer, allow_negative=(answer < 0))
     update_user(user_id, current_topic=topic, current_answer=answer)
 
     await message.answer(
@@ -1010,7 +1291,7 @@ async def challenge_handler(message: types.Message):
 
     topic = random.choice(list(TOPICS.keys()))
     example_text, answer = generate_example(topic, "hard")
-    options = generate_options(answer)
+    options = generate_options(answer, allow_negative=(answer < 0))
     update_user(user_id, current_topic=topic, current_answer=answer)
 
     await message.answer(
