@@ -508,215 +508,519 @@ def topic_allows_negative(topic):
 
 
 FORMULAS = {
+
+    # ========================================================
+    # ➕ QO'SHISH VA AYIRISH
+    # ========================================================
     "add_sub": (
         "➕ QO'SHISH VA AYIRISH\n\n"
-        "• a + b = qo'shindi (summa)\n"
+        "📌 ASOSIY FORMULALAR\n"
+        "• a + b = summa\n"
         "• a − b = ayirma\n"
-        "• a + b = b + a (o'rin almashtirish qonuni)\n"
-        "• (a + b) + c = a + (b + c) (guruhlash qonuni)\n"
-        "• a − b ≠ b − a (ayirishda o'rin almashtirib bo'lmaydi)\n"
-        "• a + 0 = a, a − 0 = a\n"
+        "• a + 0 = a\n"
+        "• a − 0 = a\n"
         "• a − a = 0\n\n"
-        "📌 Qoida: ko'p xonali sonlarni qo'shish/ayirishda raqamlarni o'ngdan chapga, "
-        "xona-xona (birlik, o'nlik, yuzlik...) tekislab yozing."
+        "📌 XOSSALAR\n"
+        "• a + b = b + a — o'rin almashtirish\n"
+        "• (a + b) + c = a + (b + c) — guruhlash\n"
+        "• a − b = a + (−b)\n\n"
+        "📌 MANFIY SONLAR\n"
+        "• (+a) + (+b) = a + b\n"
+        "• (−a) + (−b) = −(a + b)\n"
+        "• a − (−b) = a + b\n"
+        "• a + (−b) = a − b\n\n"
+        "💡 Ayirishni qo'shishga aylantirib, ikkinchi sonning ishorasini o'zgartirish mumkin."
     ),
+
+    # ========================================================
+    # ✖️ KO'PAYTIRISH VA BO'LISH
+    # ========================================================
     "mul_div": (
         "✖️ KO'PAYTIRISH VA BO'LISH\n\n"
+        "📌 ASOSIY FORMULALAR\n"
         "• a × b = ko'paytma\n"
-        "• a ÷ b = bo'linma (b ≠ 0)\n"
-        "• a × b = b × a (o'rin almashtirish qonuni)\n"
-        "• (a × b) × c = a × (b × c) (guruhlash qonuni)\n"
-        "• a × (b + c) = a×b + a×c (taqsimot qonuni)\n"
-        "• a × 1 = a,  a × 0 = 0\n"
-        "• a ÷ 1 = a,  a ÷ a = 1 (a ≠ 0)\n"
-        "• Bo'linma tekshiruvi: a = b × natija + qoldiq"
+        "• a ÷ b = bo'linma, b ≠ 0\n"
+        "• a × 1 = a\n"
+        "• a × 0 = 0\n"
+        "• a ÷ 1 = a\n"
+        "• a ÷ a = 1, a ≠ 0\n\n"
+        "📌 XOSSALAR\n"
+        "• ab = ba\n"
+        "• (ab)c = a(bc)\n"
+        "• a(b + c) = ab + ac\n"
+        "• a(b − c) = ab − ac\n\n"
+        "📌 BO'LISHNI TEKSHIRISH\n"
+        "• a = bq + r\n"
+        "• 0 ≤ r < b\n\n"
+        "⚠️ Nolga bo'lish mumkin emas!"
     ),
+
+    # ========================================================
+    # % FOIZLAR
+    # ========================================================
     "percent": (
-        "% FOIZLAR\n\n"
-        "• Sonning n% i = son × n ÷ 100\n"
-        "• Foizni songa aylantirish: n% = n ÷ 100\n"
-        "• Narx n% ga oshsa: yangi narx = eski narx + eski narx×n÷100 = eski narx×(1 + n/100)\n"
-        "• Narx n% ga tushsa: yangi narx = eski narx − eski narx×n÷100 = eski narx×(1 − n/100)\n"
-        "• A soni B sonining necha foizini tashkil qiladi: (A ÷ B) × 100%\n"
-        "• Butun son = qism ÷ (foiz ÷ 100)"
+        "📊 FOIZLAR\n\n"
+        "📌 ASOSIY FORMULALAR\n"
+        "• p% = p / 100\n"
+        "• Sonning p% i = Son × p / 100\n"
+        "• A son B ning necha foizi: p = A / B × 100%\n"
+        "• Butun son = qism × 100 / p\n\n"
+        "📈 FOIZGA OSHIRISH\n"
+        "• Yangi = Eski × (1 + p/100)\n\n"
+        "📉 FOIZGA KAMAYTIRISH\n"
+        "• Yangi = Eski × (1 − p/100)\n\n"
+        "📌 O'ZGARISH FOIZI\n"
+        "• O'zgarish % = (Yangi − Eski) / Eski × 100%\n\n"
+        "📌 KETMA-KET FOIZ O'ZGARISHI\n"
+        "• Yangi = Eski × (1 ± p₁/100) × (1 ± p₂/100)\n\n"
+        "💡 Ketma-ket oshirish va kamaytirish foizlari bir xil bo'lsa ham, "
+        "natija odatda boshlang'ich qiymatga teng bo'lmaydi."
     ),
+
+    # ========================================================
+    # ½ KASRLAR
+    # ========================================================
     "fraction": (
         "½ KASRLAR\n\n"
-        "• Sonning a/b qismi = son × a ÷ b\n"
-        "• Kasrlarni qo'shish (bir xil maxrajda): a/c + b/c = (a+b)/c\n"
-        "• Kasrlarni ko'paytirish: (a/b) × (c/d) = (a×c)/(b×d)\n"
-        "• Kasrlarni bo'lish: (a/b) ÷ (c/d) = (a/b) × (d/c)\n"
-        "• Aralash sonni kasrga aylantirish: a b/c = (a×c+b)/c\n"
-        "• Qisqartirish: a/b = (a÷k)/(b÷k), k — umumiy bo'luvchi"
+        "📌 ASOSIY TUSHUNCHA\n"
+        "• a/b — kasr, b ≠ 0\n"
+        "• a — surat\n"
+        "• b — maxraj\n\n"
+        "➕ QO'SHISH\n"
+        "• a/b + c/b = (a+c)/b\n"
+        "• a/b + c/d = (ad+bc)/bd\n\n"
+        "➖ AYIRISH\n"
+        "• a/b − c/d = (ad−bc)/bd\n\n"
+        "✖️ KO'PAYTIRISH\n"
+        "• a/b × c/d = ac/bd\n\n"
+        "➗ BO'LISH\n"
+        "• a/b ÷ c/d = ad/bc\n\n"
+        "📌 QISQARTIRISH\n"
+        "• a/b = (a÷k)/(b÷k)\n\n"
+        "📌 ARALASH SON\n"
+        "• m a/b = (mb+a)/b\n\n"
+        "📌 O'NLI KASR\n"
+        "• 0.5 = 1/2\n"
+        "• 0.25 = 1/4"
     ),
+
+    # ========================================================
+    # x² DARAJALAR
+    # ========================================================
     "power": (
         "x² DARAJALAR\n\n"
-        "• aⁿ = a × a × ... × a (n marta)\n"
-        "• a¹ = a,  a⁰ = 1 (a ≠ 0)\n"
+        "📌 ASOSIY\n"
+        "• aⁿ = a × a × ... × a\n"
+        "• a¹ = a\n"
+        "• a⁰ = 1, a ≠ 0\n\n"
+        "📌 DARAJA XOSSALARI\n"
         "• aᵐ × aⁿ = aᵐ⁺ⁿ\n"
-        "• aᵐ ÷ aⁿ = aᵐ⁻ⁿ\n"
-        "• (aᵐ)ⁿ = aᵐ×ⁿ\n"
-        "• (a×b)ⁿ = aⁿ × bⁿ\n"
-        "• (a+b)² = a² + 2ab + b²\n"
-        "• (a−b)² = a² − 2ab + b²\n"
-        "• a² − b² = (a−b)(a+b)"
+        "• aᵐ ÷ aⁿ = aᵐ⁻ⁿ, a ≠ 0\n"
+        "• (aᵐ)ⁿ = aᵐⁿ\n"
+        "• (ab)ⁿ = aⁿbⁿ\n"
+        "• (a/b)ⁿ = aⁿ/bⁿ, b ≠ 0\n\n"
+        "📌 MANFIY DARAJA\n"
+        "• a⁻ⁿ = 1/aⁿ, a ≠ 0\n\n"
+        "📌 KASR KO'RSATKICH\n"
+        "• a^(1/n) = ⁿ√a\n"
+        "• a^(m/n) = ⁿ√(aᵐ)"
     ),
+
+    # ========================================================
+    # √ ILDIZLAR
+    # ========================================================
     "sqrt": (
-        "√ KVADRAT ILDIZ\n\n"
-        "• √a = shunday b ≥ 0 ki, b × b = a\n"
-        "• √(a×b) = √a × √b\n"
-        "• √(a/b) = √a ÷ √b (b ≠ 0)\n"
-        "• (√a)² = a (a ≥ 0)\n"
-        "• √a² = |a|\n"
-        "• Muhim kvadratlar: 1,4,9,16,25,36,49,64,81,100,121,144,169,196,225,...\n"
-        "  ularning ildizlari mos ravishda: 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,..."
+        "√ ILDIZLAR\n\n"
+        "📌 ASOSIY\n"
+        "• √a = x ⇔ x² = a, a ≥ 0\n"
+        "• √(a²) = |a|\n\n"
+        "📌 XOSSALAR\n"
+        "• √(ab) = √a × √b\n"
+        "• √(a/b) = √a / √b\n"
+        "• ⁿ√(aⁿ) = a — n toq bo'lsa\n"
+        "• ⁿ√(aⁿ) = |a| — n juft bo'lsa\n\n"
+        "📌 SODDALASHTIRISH\n"
+        "• √(a²b) = |a|√b\n"
+        "• √12 = 2√3\n\n"
+        "📌 MAXRAJNI IRRATSIONALLIKDAN QUTQARISH\n"
+        "• 1/√a = √a/a, a > 0"
     ),
+
+    # ========================================================
+    # 🔤 CHIZIQLI TENGLAMA
+    # ========================================================
     "linear_eq": (
         "🔤 CHIZIQLI TENGLAMA\n\n"
-        "• x + b = c  →  x = c − b\n"
-        "• ax = c  →  x = c ÷ a (a ≠ 0)\n"
-        "• ax + b = c  →  x = (c − b) ÷ a\n"
-        "• ax + b = cx + d  →  x = (d − b) ÷ (a − c)\n"
-        "• Tenglamaning ikkala tomoniga bir xil son qo'shish/ayirish yechimni o'zgartirmaydi\n"
-        "• Tenglamaning ikkala tomonini bir xil (nolmas) songa ko'paytirish/bo'lish yechimni o'zgartirmaydi"
+        "📌 ASOSIY KO'RINISH\n"
+        "• ax + b = 0, a ≠ 0\n"
+        "• x = −b/a\n\n"
+        "📌 UMUMIY KO'RINISH\n"
+        "• ax + b = cx + d\n"
+        "• x = (d−b)/(a−c), a ≠ c\n\n"
+        "📌 YECHISH TARTIBI\n"
+        "1️⃣ Qavslarni oching.\n"
+        "2️⃣ O'xshash hadlarni ixchamlang.\n"
+        "3️⃣ x li hadlarni bir tomonga o'tkazing.\n"
+        "4️⃣ Sonlarni boshqa tomonga o'tkazing.\n"
+        "5️⃣ x koeffitsientiga bo'ling."
     ),
+
+    # ========================================================
+    # 🔤 KVADRAT TENGLAMA
+    # ========================================================
     "quad_eq": (
         "🔤 KVADRAT TENGLAMA\n\n"
-        "• Umumiy ko'rinish: ax² + bx + c = 0 (a ≠ 0)\n"
-        "• Diskriminant: D = b² − 4ac\n"
-        "• Ildizlar: x = (−b ± √D) ÷ (2a)\n"
-        "• D > 0 → 2 ta ildiz, D = 0 → 1 ta ildiz, D < 0 → haqiqiy ildiz yo'q\n"
-        "• Vieta teoremasi (x² + px + q = 0 uchun):\n"
-        "  x1 + x2 = −p\n"
-        "  x1 × x2 = q"
+        "📌 UMUMIY KO'RINISH\n"
+        "• ax² + bx + c = 0, a ≠ 0\n\n"
+        "📌 DISKRIMINANT\n"
+        "• D = b² − 4ac\n\n"
+        "📌 ILDIZLAR\n"
+        "• x₁ = (−b + √D)/(2a)\n"
+        "• x₂ = (−b − √D)/(2a)\n\n"
+        "📌 HOLATLAR\n"
+        "• D > 0 → 2 ta haqiqiy ildiz\n"
+        "• D = 0 → 1 ta haqiqiy ildiz\n"
+        "• D < 0 → haqiqiy ildiz yo'q\n\n"
+        "📌 VIETA TEOREMASI\n"
+        "• x₁ + x₂ = −b/a\n"
+        "• x₁x₂ = c/a\n\n"
+        "📌 QISQA KO'PAYTIRISH FORMULALARI\n"
+        "• (a+b)² = a²+2ab+b²\n"
+        "• (a−b)² = a²−2ab+b²\n"
+        "• a²−b² = (a−b)(a+b)"
     ),
+
+    # ========================================================
+    # 🔗 TENGLAMALAR SISTEMASI
+    # ========================================================
     "system_eq": (
         "🔗 TENGLAMALAR SISTEMASI\n\n"
-        "• Umumiy ko'rinish: ax + by = c,  dx + ey = f\n"
-        "• O'RNIGA QO'YISH USULI: bitta tenglamadan bitta o'zgaruvchini "
-        "ifodalang (masalan y = ...), so'ng ikkinchi tenglamaga qo'ying\n"
-        "• QO'SHISH (ALGEBRAIK) USULI: tenglamalarni bir xil koeffitsientlar "
-        "hosil bo'ladigan songa ko'paytirib, qo'shish yoki ayirish orqali "
-        "bitta o'zgaruvchini yo'qotasiz\n"
-        "• GRAFIK USULI: har ikkala tenglama chiziq sifatida chizilib, "
-        "kesishish nuqtasi yechim bo'ladi\n"
-        "• Sistema yechimlari soni: agar to'g'ri chiziqlar kesishsa - 1 ta "
-        "yechim, parallel bo'lsa - yechim yo'q, ustma-ust tushsa - cheksiz "
-        "yechim"
+        "📌 2×2 SISTEMA\n"
+        "• a₁x+b₁y=c₁\n"
+        "• a₂x+b₂y=c₂\n\n"
+        "📌 YECHISH USULLARI\n"
+        "• O'rniga qo'yish usuli\n"
+        "• Qo'shish/ayirish usuli\n"
+        "• Grafik usul\n\n"
+        "📌 KRAMER QOIDASI\n"
+        "• D = a₁b₂−a₂b₁\n"
+        "• Dx = c₁b₂−c₂b₁\n"
+        "• Dy = a₁c₂−a₂c₁\n"
+        "• x = Dx/D\n"
+        "• y = Dy/D\n"
+        "• D ≠ 0"
     ),
+
+    # ========================================================
+    # 🔺 UCHBURCHAK
+    # ========================================================
     "triangle": (
         "🔺 UCHBURCHAK\n\n"
-        "• Yuza = (asos × balandlik) ÷ 2\n"
-        "• Perimetr = a + b + c (barcha tomonlar yig'indisi)\n"
-        "• Burchaklar yig'indisi = 180°\n"
-        "• Teng yonli uchburchakda 2 tomon va 2 burchak teng\n"
-        "• Teng tomonli uchburchakda barcha tomon va burchaklar teng (har biri 60°)\n"
-        "• To'g'ri burchakli uchburchakda: Pifagor teoremasi — a² + b² = c² (c — gipotenuza)"
+        "📌 PERIMETR\n"
+        "• P = a+b+c\n\n"
+        "📌 YUZA\n"
+        "• S = ah/2\n"
+        "• S = ab·sinC/2\n\n"
+        "📌 GERON FORMULASI\n"
+        "• p = (a+b+c)/2\n"
+        "• S = √[p(p−a)(p−b)(p−c)]\n\n"
+        "📌 PIFAGOR TEOREMASI\n"
+        "• a²+b²=c²\n"
+        "• c=√(a²+b²)\n\n"
+        "📌 BURCHAKLAR YIG'INDISI\n"
+        "• A+B+C=180°\n\n"
+        "📌 TENG TOMONLI UCHBURCHAK\n"
+        "• P=3a\n"
+        "• h=a√3/2\n"
+        "• S=a²√3/4\n\n"
+        "📌 AYLANA BILAN BOG'LIQ\n"
+        "• S=pr\n"
+        "• S=abc/(4R)"
     ),
+
+    # ========================================================
+    # ▭ TO'RTBURCHAKLAR
+    # ========================================================
     "rectangle": (
-        "▭ TO'RTBURCHAK (TO'G'RI TO'RTBURCHAK)\n\n"
-        "• Yuza = a × b\n"
-        "• Perimetr = 2 × (a + b)\n"
-        "• Diagonal (Pifagor bo'yicha): d = √(a² + b²)\n"
-        "• Kvadrat uchun (a = b): Yuza = a², Perimetr = 4a"
+        "▭ TO'RTBURCHAKLAR\n\n"
+        "📌 TO'G'RI TO'RTBURCHAK\n"
+        "• P=2(a+b)\n"
+        "• S=ab\n"
+        "• d=√(a²+b²)\n\n"
+        "📌 KVADRAT\n"
+        "• P=4a\n"
+        "• S=a²\n"
+        "• d=a√2\n\n"
+        "📌 PARALLELOGRAMM\n"
+        "• P=2(a+b)\n"
+        "• S=ah\n"
+        "• S=ab·sinα\n\n"
+        "📌 ROMB\n"
+        "• P=4a\n"
+        "• S=ah\n"
+        "• S=d₁d₂/2\n\n"
+        "📌 TRAPETSIYA\n"
+        "• S=(a+b)h/2\n"
+        "• m=(a+b)/2\n"
+        "• S=mh"
     ),
+
+    # ========================================================
+    # ⭕ AYLANA VA DOIRA
+    # ========================================================
     "circle": (
-        "⭕ DOIRA VA AYLANA\n\n"
-        "• Doira yuzasi = π × r²\n"
-        "• Aylana uzunligi (perimetri) = 2 × π × r = π × d\n"
-        "• Diametr d = 2 × r\n"
-        "• π ≈ 3.14 yoki 22/7 (taqribiy)\n"
-        "• Radius yuza orqali: r = √(Yuza ÷ π)"
+        "⭕ AYLANA VA DOIRA\n\n"
+        "📌 AYLANA UZUNLIGI\n"
+        "• C=2πr\n"
+        "• C=πd\n\n"
+        "📌 DOIRA YUZASI\n"
+        "• S=πr²\n\n"
+        "📌 DIAMETR\n"
+        "• d=2r\n"
+        "• r=d/2\n\n"
+        "📌 SEKTOR YUZASI\n"
+        "• S=α/360° × πr²\n\n"
+        "📌 YOY UZUNLIGI\n"
+        "• l=α/360° × 2πr\n\n"
+        "📌 AYLANA TENGLAMASI\n"
+        "• (x−a)²+(y−b)²=r²\n"
+        "• Markaz=(a,b)\n"
+        "• Radius=r"
     ),
+
+    # ========================================================
+    # ⚖️ NISBAT VA PROPORSIYA
+    # ========================================================
     "ratio": (
-        "⚖️ NISBAT VA PROPORTSIYA\n\n"
-        "• a : b = c : d  →  a × d = b × c (proportsiya asosiy xossasi)\n"
-        "• Nisbatning ikkala tomonini bir xil songa ko'paytirish/bo'lish nisbatni o'zgartirmaydi\n"
-        "• Sonni a:b nisbatda ulashish: kichik qism = son × a ÷ (a+b), katta qism = son × b ÷ (a+b)\n"
-        "• To'g'ri proportsionallik: y = k × x\n"
-        "• Teskari proportsionallik: y = k ÷ x"
+        "⚖️ NISBAT VA PROPORSIYA\n\n"
+        "📌 NISBAT\n"
+        "• a:b=a/b\n\n"
+        "📌 PROPORSIYA\n"
+        "• a/b=c/d\n"
+        "• ad=bc\n\n"
+        "📌 NOMALUMNI TOPISH\n"
+        "• x/b=c/d → x=bc/d\n\n"
+        "📌 TO'G'RI PROPORSIYA\n"
+        "• y=kx\n"
+        "• y/x=k\n\n"
+        "📌 TESKARI PROPORSIYA\n"
+        "• y=k/x\n"
+        "• xy=k\n\n"
+        "📌 MASSHTAB\n"
+        "• Masshtab=xaritadagi masofa/haqiqiy masofa"
     ),
+
+    # ========================================================
+    # 📊 O'RTACHA QIYMAT
+    # ========================================================
     "average": (
         "📊 O'RTACHA QIYMAT\n\n"
-        "• O'rtacha (arifmetik) = (barcha sonlar yig'indisi) ÷ (sonlar soni)\n"
-        "• Yig'indi = o'rtacha × sonlar soni\n"
-        "• Agar bitta son ma'lum bo'lmasa: noma'lum son = (o'rtacha × soni) − (ma'lum sonlar yig'indisi)"
+        "📌 ARIFMETIK O'RTACHA\n"
+        "• x̄=(x₁+x₂+...+xₙ)/n\n\n"
+        "📌 YIG'INDI\n"
+        "• S=x̄n\n\n"
+        "📌 OG'IRLIKLI O'RTACHA\n"
+        "• x̄=(x₁w₁+x₂w₂+...+xₙwₙ)/(w₁+w₂+...+wₙ)"
     ),
+
+    # ========================================================
+    # ➖ MANFIY SONLAR
+    # ========================================================
     "negative": (
-        "➖ MANFIY SONLAR\n\n"
-        "• (−a) + (−b) = −(a+b)\n"
-        "• (−a) − b = −(a+b)\n"
-        "• a − (−b) = a + b\n"
-        "• (−a) + b = b − a\n"
-        "• (−a) × (−b) = a × b (manfiy × manfiy = musbat)\n"
-        "• (−a) × b = −(a×b) (manfiy × musbat = manfiy)\n"
-        "• (−a) ÷ (−b) = a ÷ b\n"
-        "• (−a) ÷ b = −(a÷b)"
+        "➖ MANFIY SONLAR VA MODUL\n\n"
+        "📌 MODUL\n"
+        "• |a|=a, a≥0\n"
+        "• |a|=−a, a<0\n"
+        "• |−a|=|a|\n\n"
+        "📌 ISHORALAR\n"
+        "• (+)×(+) = +\n"
+        "• (−)×(−) = +\n"
+        "• (+)×(−) = −\n"
+        "• (−)×(+) = −\n\n"
+        "📌 SONLAR O'QIDA MASOFA\n"
+        "• |a−b| — a va b orasidagi masofa"
     ),
+
+    # ========================================================
+    # 🚗 TEZLIK — VAQT — MASOFA
+    # ========================================================
     "speed": (
-        "🚗 TEZLIK-VAQT-MASOFA\n\n"
-        "• Masofa (S) = Tezlik (V) × Vaqt (T)\n"
-        "• Tezlik (V) = Masofa (S) ÷ Vaqt (T)\n"
-        "• Vaqt (T) = Masofa (S) ÷ Tezlik (V)\n"
-        "• Qarama-qarshi harakatda: yaqinlashish tezligi = V1 + V2\n"
-        "• Bir yo'nalishda quvib o'tishda: V(farq) = V1 − V2"
+        "🚗 TEZLIK — VAQT — MASOFA\n\n"
+        "📌 ASOSIY FORMULALAR\n"
+        "• S=vt\n"
+        "• v=S/t\n"
+        "• t=S/v\n\n"
+        "📌 O'RTACHA TEZLIK\n"
+        "• vₒᵣₜ=umumiy masofa/umumiy vaqt\n\n"
+        "📌 BIRLIKLARNI ALMASHTIRISH\n"
+        "• 1 m/s=3.6 km/soat\n"
+        "• 1 km/soat=5/18 m/s"
     ),
+
+    # ========================================================
+    # 🏦 BANK FOIZLARI
+    # ========================================================
     "bank_percent": (
-        "🏦 FOIZ O'SISHI (BANK DEPOZITI)\n\n"
-        "• Foiz summasi = Depozit × Foiz stavkasi ÷ 100\n"
-        "• 1 yildan keyingi umumiy summa = Depozit + Foiz summasi = Depozit × (1 + stavka/100)\n"
-        "• Oddiy foiz (n yil): Summa = Depozit × (1 + n×stavka/100)\n"
-        "• Murakkab foiz (n yil): Summa = Depozit × (1 + stavka/100)ⁿ"
+        "🏦 BANK FOIZLARI\n\n"
+        "📌 ODDIY FOIZ\n"
+        "• I=Prt\n"
+        "• A=P(1+rt)\n\n"
+        "📌 MURAKKAB FOIZ\n"
+        "• A=P(1+r/n)^(nt)\n\n"
+        "P — boshlang'ich summa\n"
+        "r — yillik foiz stavkasi, o'nli ko'rinishda\n"
+        "n — yiliga kapitalizatsiya soni\n"
+        "t — vaqt (yil)\n"
+        "A — yakuniy summa\n\n"
+        "📌 YILLIK BIR MARTALIK O'SISH\n"
+        "• A=P(1+r)^t"
     ),
+
+    # ========================================================
+    # 📐 TRIGONOMETRIYA
+    # ========================================================
     "trig": (
         "📐 TRIGONOMETRIYA\n\n"
-        "Asosiy burchaklar jadvali:\n"
-        "• sin: 0°→0, 30°→0.5, 45°→√2/2, 60°→√3/2, 90°→1\n"
-        "• cos: 0°→1, 30°→√3/2, 45°→√2/2, 60°→0.5, 90°→0\n"
-        "• tan: 0°→0, 45°→1, 90°→aniqlanmagan\n\n"
-        "• sin²α + cos²α = 1 (asosiy trigonometrik ayniyat)\n"
-        "• tan α = sin α ÷ cos α"
+        "📌 TO'G'RI BURCHAKLI UCHBURCHAK\n"
+        "• sinα=qarshi katet/gipotenuza\n"
+        "• cosα=yondosh katet/gipotenuza\n"
+        "• tanα=qarshi katet/yondosh katet\n"
+        "• cotα=yondosh katet/qarshi katet\n\n"
+        "📌 ASOSIY AYNİYATLAR\n"
+        "• sin²α+cos²α=1\n"
+        "• tanα=sinα/cosα\n"
+        "• cotα=cosα/sinα\n"
+        "• 1+tan²α=1/cos²α\n"
+        "• 1+cot²α=1/sin²α\n\n"
+        "📌 QO'SHISH FORMULALARI\n"
+        "• sin(α+β)=sinαcosβ+cosαsinβ\n"
+        "• sin(α−β)=sinαcosβ−cosαsinβ\n"
+        "• cos(α+β)=cosαcosβ−sinαsinβ\n"
+        "• cos(α−β)=cosαcosβ+sinαsinβ\n\n"
+        "📌 IKKI BURCHAK\n"
+        "• sin2α=2sinαcosα\n"
+        "• cos2α=cos²α−sin²α\n"
+        "• cos2α=2cos²α−1\n"
+        "• cos2α=1−2sin²α\n"
+        "• tan2α=2tanα/(1−tan²α)\n\n"
+        "📌 SINUSLAR TEOREMASI\n"
+        "• a/sinA=b/sinB=c/sinC=2R\n\n"
+        "📌 KOSINUSLAR TEOREMASI\n"
+        "• c²=a²+b²−2ab cosC\n\n"
+        "📌 MUHIM QIYMATLAR\n"
+        "• sin30°=1/2\n"
+        "• cos30°=√3/2\n"
+        "• sin45°=cos45°=√2/2\n"
+        "• sin60°=√3/2\n"
+        "• cos60°=1/2\n"
+        "• tan45°=1"
     ),
+
+    # ========================================================
+    # 📈 LOGARIFMLAR
+    # ========================================================
     "log": (
-        "📈 LOGARIFM\n\n"
-        "• log_a(b) = c  ⟺  a^c = b  (a > 0, a ≠ 1, b > 0)\n"
-        "• log_a(1) = 0\n"
-        "• log_a(a) = 1\n"
-        "• log_a(x×y) = log_a(x) + log_a(y)\n"
-        "• log_a(x÷y) = log_a(x) − log_a(y)\n"
-        "• log_a(xⁿ) = n × log_a(x)"
+        "📈 LOGARIFMLAR\n\n"
+        "📌 TA'RIF\n"
+        "• logₐb=c ⇔ aᶜ=b\n"
+        "• a>0, a≠1, b>0\n\n"
+        "📌 ASOSIY XOSSALAR\n"
+        "• logₐ1=0\n"
+        "• logₐa=1\n"
+        "• logₐ(aˣ)=x\n"
+        "• a^(logₐx)=x\n\n"
+        "📌 KO'PAYTMA\n"
+        "• logₐ(xy)=logₐx+logₐy\n\n"
+        "📌 BO'LISH\n"
+        "• logₐ(x/y)=logₐx−logₐy\n\n"
+        "📌 DARAJA\n"
+        "• logₐ(xⁿ)=n logₐx\n\n"
+        "📌 ASOSNI ALMASHTIRISH\n"
+        "• logₐb=log_cb/log_ca\n\n"
+        "📌 NATURAL LOGARIFM\n"
+        "• ln x=logₑx\n"
+        "• e≈2.71828"
     ),
+
+    # ========================================================
+    # 📶 KO'RSATKICHLI IFODALAR
+    # ========================================================
     "expo_eq": (
-        "📶 KO'RSATKICHLI TENGLAMA\n\n"
-        "• Umumiy g'oya: a^x = a^n  ⟺  x = n  (a > 0, a ≠ 1)\n"
-        "• a^x × a^y = a^(x+y)\n"
-        "• a^x ÷ a^y = a^(x−y)\n"
-        "• (a^x)^y = a^(x×y)\n"
-        "• Ikkala tomonni BIR XIL ASOSGA keltirib, so'ng darajalarni tenglashtiring\n"
-        "• Masalan: 8^x = 2^9 → (2³)^x = 2^9 → 2^(3x) = 2^9 → 3x = 9 → x = 3"
+        "📶 KO'RSATKICHLI IFODALAR VA TENGLAMALAR\n\n"
+        "📌 ASOSIY\n"
+        "• aˣ=b\n"
+        "• a>0, a≠1\n\n"
+        "📌 BIR XIL ASOS\n"
+        "• aᶠ⁽ˣ⁾=aᵍ⁽ˣ⁾ → f(x)=g(x)\n\n"
+        "📌 DARAJA XOSSALARI\n"
+        "• aˣaʸ=aˣ⁺ʸ\n"
+        "• aˣ/aʸ=aˣ⁻ʸ\n"
+        "• (aˣ)ʸ=aˣʸ\n\n"
+        "📌 LOGARIFM ORQALI\n"
+        "• aˣ=b → x=logₐb\n"
+        "• eˣ=b → x=ln b"
     ),
+
+    # ========================================================
+    # 🔢 ARIFMETIK PROGRESSIYA
+    # ========================================================
     "arith_prog": (
         "🔢 ARIFMETIK PROGRESSIYA\n\n"
-        "• n-had: a_n = a1 + (n−1) × d\n"
-        "• Ayirma: d = a_(n+1) − a_n\n"
-        "• Yig'indi: S_n = n × (2×a1 + (n−1)×d) ÷ 2\n"
-        "• Yig'indi (boshqa ko'rinish): S_n = n × (a1 + a_n) ÷ 2"
+        "📌 TA'RIF\n"
+        "• aₙ₊₁=aₙ+d\n"
+        "• d — ayirma\n\n"
+        "📌 n-HAD\n"
+        "• aₙ=a₁+(n−1)d\n\n"
+        "📌 AYIRMA\n"
+        "• d=aₙ−aₙ₋₁\n\n"
+        "📌 DASTLABKI n HAD YIG'INDISI\n"
+        "• Sₙ=n(a₁+aₙ)/2\n"
+        "• Sₙ=n[2a₁+(n−1)d]/2\n\n"
+        "📌 O'RTA HAD\n"
+        "• aₙ=(aₙ₋₁+aₙ₊₁)/2"
     ),
+
+    # ========================================================
+    # 🔢 GEOMETRIK PROGRESSIYA
+    # ========================================================
     "geom_prog": (
         "🔢 GEOMETRIK PROGRESSIYA\n\n"
-        "• n-had: a_n = a1 × q^(n−1)\n"
-        "• Maxraj: q = a_(n+1) ÷ a_n\n"
-        "• Yig'indi (q ≠ 1): S_n = a1 × (qⁿ − 1) ÷ (q − 1)\n"
-        "• Cheksiz kamayuvchi progressiya yig'indisi (|q| < 1): S = a1 ÷ (1 − q)"
+        "📌 TA'RIF\n"
+        "• bₙ₊₁=bₙq\n"
+        "• q — maxraj\n\n"
+        "📌 n-HAD\n"
+        "• bₙ=b₁qⁿ⁻¹\n\n"
+        "📌 DASTLABKI n HAD YIG'INDISI\n"
+        "• Sₙ=b₁(qⁿ−1)/(q−1), q≠1\n"
+        "• Sₙ=b₁(1−qⁿ)/(1−q)\n\n"
+        "📌 CHEKSIZ KAMAYUVCHI PROGRESSIYA\n"
+        "• S∞=b₁/(1−q)\n"
+        "• |q|<1\n\n"
+        "📌 O'RTA HAD\n"
+        "• bₙ²=bₙ₋₁×bₙ₊₁"
     ),
+
+    # ========================================================
+    # 🎲 KOMBINATORIKA
+    # ========================================================
     "combinatorics": (
         "🎲 KOMBINATORIKA\n\n"
-        "• Faktorial: n! = 1 × 2 × 3 × ... × n  (0! = 1)\n"
-        "• Ko'paytirish qoidasi: agar 1-tanlov m xil, 2-tanlov n xil usulda "
-        "bo'lsa, ikkalasi birga m×n xil usulda bajariladi\n"
-        "• O'rin almashtirish (permutatsiya): P_n = n!\n"
-        "• Joylashtirish (tartib MUHIM): A_n^k = n! ÷ (n−k)!\n"
-        "• Kombinatsiya (tartib MUHIM EMAS): C_n^k = n! ÷ (k! × (n−k)!)"
+        "📌 FAKTORIAL\n"
+        "• n!=1×2×3×...×n\n"
+        "• 0!=1\n\n"
+        "📌 O'RIN ALMASHTIRISH\n"
+        "• Pₙ=n!\n\n"
+        "📌 TAKRORLANMAYDIGAN JOYLASHTIRISH\n"
+        "• Aₙᵏ=n!/(n−k)!\n\n"
+        "📌 TAKRORLANMAYDIGAN KOMBINATSIYA\n"
+        "• Cₙᵏ=n!/[k!(n−k)!]\n\n"
+        "📌 KOMBINATSIYA XOSSALARI\n"
+        "• Cₙ⁰=Cₙⁿ=1\n"
+        "• Cₙᵏ=Cₙⁿ⁻ᵏ\n\n"
+        "📌 KO'PAYTIRISH QOIDASI\n"
+        "• m×n\n\n"
+        "📌 QO'SHISH QOIDASI\n"
+        "• m+n — bir-birini istisno qiluvchi holatlar uchun."
     ),
 }
 
