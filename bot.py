@@ -367,7 +367,7 @@ PATH_ORDER = [
     "linear_eq", "quad_eq", "system_eq",
     "triangle", "rectangle", "circle",
     "speed", "bank_percent",
-    "trig", "log", "arith_prog", "geom_prog",
+    "trig", "log", "expo_eq", "arith_prog", "geom_prog", "combinatorics",
 ]
 
 
@@ -441,8 +441,10 @@ TOPICS = {
     "bank_percent": "🏦 Foiz o'sishi",
     "trig": "📐 Trigonometriya",
     "log": "📈 Logarifm",
+    "expo_eq": "📶 Ko'rsatkichli tenglama",
     "arith_prog": "🔢 Arifmetik progressiya",
     "geom_prog": "🔢 Geometrik progressiya",
+    "combinatorics": "🎲 Kombinatorika",
 }
 
 
@@ -465,7 +467,7 @@ GRADE_TOPICS = {
 GRADE_TOPICS["medium"] = GRADE_TOPICS["easy"] + [
     "quad_eq", "system_eq", "bank_percent", "trig", "arith_prog", "geom_prog",
 ]
-GRADE_TOPICS["hard"] = GRADE_TOPICS["medium"] + ["log"]
+GRADE_TOPICS["hard"] = GRADE_TOPICS["medium"] + ["log", "expo_eq", "combinatorics"]
 
 
 def topics_for_grade(grade):
@@ -491,8 +493,10 @@ HINTS = {
     "bank_percent": "Foiz summasi = depozit × foiz ÷ 100.",
     "trig": "Asosiy burchaklar (0°, 30°, 45°, 60°, 90°) qiymatlarini yodda tuting.",
     "log": "log_a(b) = c degani a^c = b degani.",
+    "expo_eq": "Ikkala tomonni bir xil asosga keltiring, so'ng darajalarni tenglashtiring: a^x = a^n bo'lsa, x = n.",
     "arith_prog": "a_n = a1 + (n-1) × d formulasidan foydalaning.",
     "geom_prog": "a_n = a1 × q^(n-1) formulasidan foydalaning.",
+    "combinatorics": "Tartib muhim bo'lsa - o'rin almashtirish (P/A), tartib muhim bo'lmasa - kombinatsiya (C) formulasidan foydalaning.",
 }
 
 # Qaysi mavzularda manfiy javob/variant mantiqan to'g'ri kelishi mumkin
@@ -682,6 +686,15 @@ FORMULAS = {
         "• log_a(x÷y) = log_a(x) − log_a(y)\n"
         "• log_a(xⁿ) = n × log_a(x)"
     ),
+    "expo_eq": (
+        "📶 KO'RSATKICHLI TENGLAMA\n\n"
+        "• Umumiy g'oya: a^x = a^n  ⟺  x = n  (a > 0, a ≠ 1)\n"
+        "• a^x × a^y = a^(x+y)\n"
+        "• a^x ÷ a^y = a^(x−y)\n"
+        "• (a^x)^y = a^(x×y)\n"
+        "• Ikkala tomonni BIR XIL ASOSGA keltirib, so'ng darajalarni tenglashtiring\n"
+        "• Masalan: 8^x = 2^9 → (2³)^x = 2^9 → 2^(3x) = 2^9 → 3x = 9 → x = 3"
+    ),
     "arith_prog": (
         "🔢 ARIFMETIK PROGRESSIYA\n\n"
         "• n-had: a_n = a1 + (n−1) × d\n"
@@ -695,6 +708,15 @@ FORMULAS = {
         "• Maxraj: q = a_(n+1) ÷ a_n\n"
         "• Yig'indi (q ≠ 1): S_n = a1 × (qⁿ − 1) ÷ (q − 1)\n"
         "• Cheksiz kamayuvchi progressiya yig'indisi (|q| < 1): S = a1 ÷ (1 − q)"
+    ),
+    "combinatorics": (
+        "🎲 KOMBINATORIKA\n\n"
+        "• Faktorial: n! = 1 × 2 × 3 × ... × n  (0! = 1)\n"
+        "• Ko'paytirish qoidasi: agar 1-tanlov m xil, 2-tanlov n xil usulda "
+        "bo'lsa, ikkalasi birga m×n xil usulda bajariladi\n"
+        "• O'rin almashtirish (permutatsiya): P_n = n!\n"
+        "• Joylashtirish (tartib MUHIM): A_n^k = n! ÷ (n−k)!\n"
+        "• Kombinatsiya (tartib MUHIM EMAS): C_n^k = n! ÷ (k! × (n−k)!)"
     ),
 }
 
@@ -1196,12 +1218,22 @@ def ex_sqrt_estimate(grade):
     return f"√{n_squared_area} soni qaysi ikkita ketma-ket butun son orasida joylashgan? Kichigini yozing.", low_root
 
 
+def ex_sqrt_simplify(grade):
+    # √(a²×b) = a√b ko'rinishida soddalashtirish (b - kvadratsiz son) -
+    # 10-11 sinf uchun kuchliroq ildiz bilan ishlash ko'nikmasi
+    a = random.randint(2, 10)
+    b = random.choice([2, 3, 5, 6, 7, 10, 11, 13, 14, 15])
+    n = a * a * b
+    return f"√{n} sonini a√{b} ko'rinishida soddalashtiring. a nechaga teng?", a
+
+
 GEN_SQRT = [
     (ex_sqrt_direct, ALL_TIERS),
     (ex_sqrt_from_square, ALL_TIERS),
     (ex_sqrt_area_to_side, ALL_TIERS),
     (ex_sqrt_product, ALL_TIERS),
     (ex_sqrt_estimate, MH_TIERS),
+    (ex_sqrt_simplify, H_ONLY),
 ]
 
 
@@ -1945,12 +1977,27 @@ def ex_trig_sum_angles(grade):
     return f"Uchburchak burchaklaridan ikkitasi {a1}° va {a2}°. Uchinchi burchak nechaga teng?", a3
 
 
+TRIG_EQUATION_FACTS = [
+    ("sin", 0, 0), ("sin", 50, 30), ("sin", 100, 90),
+    ("cos", 100, 0), ("cos", 50, 60), ("cos", 0, 90),
+    ("tan", 0, 0), ("tan", 100, 45),
+]
+
+
+def ex_trig_equation(grade):
+    # Oddiy trigonometrik tenglamani yechish (10-11 sinf) - qiymatlar foiz
+    # ko'rinishida berilgani uchun natija ANIQ va butun son bo'ladi
+    func, pct, angle = random.choice(TRIG_EQUATION_FACTS)
+    return f"{func}(x°) = {pct}% tenglamani yeching (0° ≤ x ≤ 90°, sin(90°)=100% deb hisoblang). x = ?", angle
+
+
 GEN_TRIG = [
     (ex_trig_value, MH_TIERS),
     (ex_trig_identity, MH_TIERS),
     (ex_trig_tan, MH_TIERS),
     (ex_trig_pythagorean, MH_TIERS),
     (ex_trig_sum_angles, MH_TIERS),
+    (ex_trig_equation, H_ONLY),
 ]
 
 
@@ -2005,6 +2052,69 @@ GEN_LOG = [
     (ex_log_of_one, H_ONLY),
     (ex_log_of_self, H_ONLY),
     (ex_log_addition_rule, H_ONLY),
+]
+
+
+# ============================================================
+# ---------- expo_eq (Ko'rsatkichli tenglama) ----------
+# ============================================================
+EXPO_BASES = [2, 3, 5, 7]
+
+
+def ex_expo_direct(grade):
+    # a^x = a^n ko'rinishida to'g'ridan-to'g'ri (asoslar bir xil)
+    base = random.choice(EXPO_BASES)
+    n = random.randint(1, 6)
+    return f"{base}^x = {base**n} tenglamani yeching. x = ?", n
+
+
+def ex_expo_different_base(grade):
+    # a^x = b ko'rinishida, lekin b ni a ning darajasi sifatida yozish kerak
+    # (masalan 8^x = 64 -> 8=2^3 emas, to'g'ridan-to'g'ri 8^x=8^2 shaklida ham
+    # bo'lishi mumkin - shuning uchun bu yerda asosni ATAYLAB "boshqa" son
+    # sifatida ko'rsatamiz, lekin u tanlangan asosning aniq darajasi bo'ladi)
+    base = random.choice(EXPO_BASES)
+    power_of_base = random.randint(2, 3)  # masalan 2^2=4, 3^2=9 - yangi "asos"
+    new_base = base ** power_of_base
+    n = random.randint(1, 4)
+    # new_base^x = base^(power_of_base * x) = base^(power_of_base * n)
+    rhs = base ** (power_of_base * n)
+    return f"{new_base}^x = {rhs} tenglamani yeching (avval ikkala tomonni {base} asosiga keltiring). x = ?", n
+
+
+def ex_expo_shift(grade):
+    # a^(x+k) = a^n ko'rinishi - qo'shimcha algebraik qadam talab qiladi
+    base = random.choice(EXPO_BASES)
+    k = random.randint(1, 5)
+    x = random.randint(1, 8)
+    n = x + k
+    return f"{base}^(x+{k}) = {base**n} tenglamani yeching. x = ?", x
+
+
+def ex_expo_product_rule(grade):
+    # a^x * a^k = a^n ko'rinishi - daraja qonunidan foydalanish kerak
+    base = random.choice(EXPO_BASES)
+    k = random.randint(1, 4)
+    x = random.randint(1, 6)
+    n = x + k
+    return f"{base}^x × {base}^{k} = {base**n} tenglamani yeching. x = ?", x
+
+
+def ex_expo_divide_rule(grade):
+    # a^x / a^k = a^n ko'rinishi
+    base = random.choice(EXPO_BASES)
+    k = random.randint(1, 4)
+    n = random.randint(1, 5)
+    x = n + k
+    return f"{base}^x ÷ {base}^{k} = {base**n} tenglamani yeching. x = ?", x
+
+
+GEN_EXPO_EQ = [
+    (ex_expo_direct, H_ONLY),
+    (ex_expo_different_base, H_ONLY),
+    (ex_expo_shift, H_ONLY),
+    (ex_expo_product_rule, H_ONLY),
+    (ex_expo_divide_rule, H_ONLY),
 ]
 
 
@@ -2082,12 +2192,88 @@ def ex_geom_find_n(grade):
     return f"Geometrik progressiya: a1={a1}, q={q}. Agar a_n = {an} bo'lsa, n nechaga teng?", n
 
 
+def ex_geom_infinite_sum(grade):
+    # Cheksiz kamayuvchi geometrik progressiya yig'indisi: S = a1 ÷ (1 − q), |q| < 1.
+    # Natija butun son chiqishi uchun q = 1/k va a1 = m×(k−1) qilib tanlanadi:
+    # S = a1 ÷ (1 − 1/k) = a1×k ÷ (k−1) = m×(k−1)×k ÷ (k−1) = m×k
+    k = random.randint(2, 6)
+    m = random.randint(1, 8)
+    a1 = m * (k - 1)
+    s = m * k
+    return f"Cheksiz kamayuvchi geometrik progressiya: a1={a1}, q=1/{k}. Uning yig'indisi (S) nechaga teng?", s
+
+
 GEN_GEOM_PROG = [
     (ex_geom_next, MH_TIERS),
     (ex_geom_nth, MH_TIERS),
     (ex_geom_sum, MH_TIERS),
     (ex_geom_find_q, MH_TIERS),
     (ex_geom_find_n, MH_TIERS),
+    (ex_geom_infinite_sum, H_ONLY),
+]
+
+
+# ============================================================
+# ---------- combinatorics (Kombinatorika) ----------
+# ============================================================
+def ex_combo_factorial(grade):
+    n = random.randint(3, 9)
+    return f"{n}! (n faktorial) nechaga teng?", math.factorial(n)
+
+
+def ex_combo_permutation(grade):
+    # O'rin almashtirish: barcha n ta elementni tartiblash soni = n!
+    n = random.randint(3, 8)
+    obj = random.choice(["kitob", "rasm", "gul dastasi", "medal", "o'quvchi"])
+    return f"{n} ta har xil {obj}ni qatorga necha xil usulda tizib qo'yish mumkin?", math.factorial(n)
+
+
+def ex_combo_arrangement(grade):
+    # Joylashtirish A_n^k = n! / (n-k)! - tartib MUHIM
+    n = random.randint(4, 12)
+    k = random.randint(2, min(6, n - 1))
+    result = math.perm(n, k)
+    return f"{n} ta o'quvchidan {k} tasini (1-o'rin, 2-o'rin, ... tartib bilan) tanlab, navbat bilan sahnaga chiqarish kerak. Nechta xil usul bor? (A_{n}^{k})", result
+
+
+def ex_combo_combination(grade):
+    # Kombinatsiya C_n^k = n! / (k!(n-k)!) - tartib MUHIM EMAS
+    n = random.randint(4, 15)
+    k = random.randint(2, min(7, n - 1))
+    result = math.comb(n, k)
+    return f"{n} kishidan iborat guruhdan {k} kishilik komissiya (tartibsiz) necha xil usulda tanlanishi mumkin? (C_{n}^{k})", result
+
+
+def ex_combo_multiplication_rule(grade):
+    # Ko'paytirish qoidasi (asosiy sanash printsipi)
+    a = random.randint(2, 8)
+    b = random.randint(2, 8)
+    c = random.randint(2, 7)
+    item1, item2, item3 = random.sample(
+        ["ko'ylak", "shim", "poyabzal", "shlyapa", "rang", "model", "o'lcham", "material", "aksessuar"], 3
+    )
+    return (
+        f"{a} xil {item1}, {b} xil {item2} va {c} xil {item3} bor. Ulardan bittadan tanlab, "
+        f"nechta turli kombinatsiya hosil qilish mumkin?",
+        a * b * c,
+    )
+
+
+def ex_combo_committee_with_roles(grade):
+    # Guruhdan aynan bitta lavozimga (masalan rais) tanlash - Arrangement mantig'ining
+    # yana bir ko'rinishi, savol matni butunlay boshqacha
+    n = random.randint(5, 15)
+    return f"{n} kishilik jamoadan bitta rais va bitta kotib (ikkalasi ham har xil kishi) necha xil usulda tanlanadi?", n * (n - 1)
+
+
+
+GEN_COMBINATORICS = [
+    (ex_combo_factorial, H_ONLY),
+    (ex_combo_permutation, H_ONLY),
+    (ex_combo_arrangement, H_ONLY),
+    (ex_combo_combination, H_ONLY),
+    (ex_combo_multiplication_rule, H_ONLY),
+    (ex_combo_committee_with_roles, H_ONLY),
 ]
 
 
@@ -2111,8 +2297,10 @@ TOPIC_GENERATORS = {
     "bank_percent": GEN_BANK_PERCENT,
     "trig": GEN_TRIG,
     "log": GEN_LOG,
+    "expo_eq": GEN_EXPO_EQ,
     "arith_prog": GEN_ARITH_PROG,
     "geom_prog": GEN_GEOM_PROG,
+    "combinatorics": GEN_COMBINATORICS,
 }
 
 
