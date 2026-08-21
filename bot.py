@@ -409,8 +409,8 @@ async def start_topic_question(user_id, first_name, topic, message=None, callbac
 
     text = (
         f"Mavzu: {TOPICS[topic]}\n\n"
-        f"📝 Misol: {example_text}\n\n"
-        f"To'g'ri javobni tanlang 👇"
+        f"рџ“ќ Misol: {example_text}\n\n"
+        f"To'g'ri javobni tanlang рџ‘‡"
     )
     markup = get_answer_keyboard(topic, options)
 
@@ -422,36 +422,36 @@ async def start_topic_question(user_id, first_name, topic, message=None, callbac
 
 # ==================== TOPICS ====================
 TOPICS = {
-    "add_sub": "➕ Qo'shish/Ayirish",
-    "mul_div": "✖️ Ko'paytirish/Bo'lish",
+    "add_sub": "вћ• Qo'shish/Ayirish",
+    "mul_div": "вњ–пёЏ Ko'paytirish/Bo'lish",
     "percent": "% Foizlar",
-    "fraction": "½ Kasrlar",
-    "power": "x² Darajalar",
-    "sqrt": "√ Kvadrat ildiz",
-    "linear_eq": "🔤 Chiziqli tenglama",
-    "quad_eq": "🔤 Kvadrat tenglama",
-    "system_eq": "🔗 Tenglamalar sistemasi",
-    "triangle": "🔺 Uchburchak",
-    "rectangle": "▭ To'rtburchak",
-    "circle": "⭕ Doira",
-    "ratio": "⚖️ Nisbat",
-    "average": "📊 O'rtacha qiymat",
-    "negative": "➖ Manfiy sonlar",
-    "speed": "🚗 Tezlik-vaqt-masofa",
-    "bank_percent": "🏦 Foiz o'sishi",
-    "trig": "📐 Trigonometriya",
-    "log": "📈 Logarifm",
-    "expo_eq": "📶 Ko'rsatkichli tenglama",
-    "arith_prog": "🔢 Arifmetik progressiya",
-    "geom_prog": "🔢 Geometrik progressiya",
-    "combinatorics": "🎲 Kombinatorika",
+    "fraction": "ВЅ Kasrlar",
+    "power": "xВІ Darajalar",
+    "sqrt": "в€љ Kvadrat ildiz",
+    "linear_eq": "рџ”¤ Chiziqli tenglama",
+    "quad_eq": "рџ”¤ Kvadrat tenglama",
+    "system_eq": "рџ”— Tenglamalar sistemasi",
+    "triangle": "рџ”є Uchburchak",
+    "rectangle": "в–­ To'rtburchak",
+    "circle": "в­• Doira",
+    "ratio": "вљ–пёЏ Nisbat",
+    "average": "рџ“Љ O'rtacha qiymat",
+    "negative": "вћ– Manfiy sonlar",
+    "speed": "рџљ— Tezlik-vaqt-masofa",
+    "bank_percent": "рџЏ¦ Foiz o'sishi",
+    "trig": "рџ“ђ Trigonometriya",
+    "log": "рџ“€ Logarifm",
+    "expo_eq": "рџ“¶ Ko'rsatkichli tenglama",
+    "arith_prog": "рџ”ў Arifmetik progressiya",
+    "geom_prog": "рџ”ў Geometrik progressiya",
+    "combinatorics": "рџЋІ Kombinatorika",
 }
 
 
 GRADE_LABELS = {
-    "easy": "🟢 5-7 sinf",
-    "medium": "🟡 8-9 sinf",
-    "hard": "🔴 10-11 sinf",
+    "easy": "рџџў 5-7 sinf",
+    "medium": "рџџЎ 8-9 sinf",
+    "hard": "рџ”ґ 10-11 sinf",
 }
 
 # Har bir sinf darajasida o'quvchiga qaysi mavzular ko'rsatilishi kerak.
@@ -476,26 +476,26 @@ def topics_for_grade(grade):
 HINTS = {
     "add_sub": "Sonlarni raqam ustuniga joylab, o'ngdan chapga qo'shing/ayiring.",
     "mul_div": "Ko'paytirish jadvalini eslang, bo'lishda qaysi songa necha marta sig'ishini toping.",
-    "percent": "Foizni 100 ga bo'lib, songa ko'paytiring: son × foiz ÷ 100.",
+    "percent": "Foizni 100 ga bo'lib, songa ko'paytiring: son Г— foiz Г· 100.",
     "fraction": "Avval sonni maxrajga bo'ling, keyin suratga ko'paytiring.",
     "power": "Daraja - sonni o'zi bilan necha marta ko'paytirish kerakligini bildiradi.",
     "sqrt": "Qaysi son o'zi bilan ko'paytirilganda shu songa teng bo'lishini toping.",
     "linear_eq": "Avval erkin hadni ikkala tomondan ayiring, keyin x oldidagi songa bo'ling.",
     "quad_eq": "Ildizlar yig'indisi -b, ko'paytmasi c ga teng (Vieta teoremasi).",
     "system_eq": "Ikkinchi tenglamadan bitta o'zgaruvchini ifodalab, birinchisiga qo'ying (o'rniga qo'yish usuli) yoki ikkala tenglamani mos songa ko'paytirib qo'shing/ayiring (qo'shish usuli).",
-    "triangle": "Uchburchak yuzasi = (asos × balandlik) ÷ 2.",
-    "rectangle": "To'rtburchak yuzasi = tomon × tomon.",
-    "circle": "Doira yuzasi = π × r × r.",
+    "triangle": "Uchburchak yuzasi = (asos Г— balandlik) Г· 2.",
+    "rectangle": "To'rtburchak yuzasi = tomon Г— tomon.",
+    "circle": "Doira yuzasi = ПЂ Г— r Г— r.",
     "ratio": "Nisbatning ikkala tomonini bir xil songa ko'paytiring yoki bo'ling.",
     "average": "Barcha sonlarni qo'shib, sonlar soniga bo'ling.",
     "negative": "Manfiy sonlar bilan ishlashda son o'qini tasavvur qiling.",
-    "speed": "Masofa = tezlik × vaqt.",
-    "bank_percent": "Foiz summasi = depozit × foiz ÷ 100.",
-    "trig": "Asosiy burchaklar (0°, 30°, 45°, 60°, 90°) qiymatlarini yodda tuting.",
+    "speed": "Masofa = tezlik Г— vaqt.",
+    "bank_percent": "Foiz summasi = depozit Г— foiz Г· 100.",
+    "trig": "Asosiy burchaklar (0В°, 30В°, 45В°, 60В°, 90В°) qiymatlarini yodda tuting.",
     "log": "log_a(b) = c degani a^c = b degani.",
     "expo_eq": "Ikkala tomonni bir xil asosga keltiring, so'ng darajalarni tenglashtiring: a^x = a^n bo'lsa, x = n.",
-    "arith_prog": "a_n = a1 + (n-1) × d formulasidan foydalaning.",
-    "geom_prog": "a_n = a1 × q^(n-1) formulasidan foydalaning.",
+    "arith_prog": "a_n = a1 + (n-1) Г— d formulasidan foydalaning.",
+    "geom_prog": "a_n = a1 Г— q^(n-1) formulasidan foydalaning.",
     "combinatorics": "Tartib muhim bo'lsa - o'rin almashtirish (P/A), tartib muhim bo'lmasa - kombinatsiya (C) formulasidan foydalaning.",
 }
 
@@ -508,454 +508,38 @@ def topic_allows_negative(topic):
 
 
 FORMULAS = {
-    "add_sub": (
-        "? QO'SHISH VA AYIRISH\n\n"
-        "?? ASOSIY FORMULALAR\n"
-        "� a + b = summa\n"
-        "� a ? b = ayirma\n"
-        "� a + 0 = a\n"
-        "� a ? 0 = a\n"
-        "� a ? a = 0\n\n"
-        "?? XOSSALAR\n"
-        "� a + b = b + a � o'rin almashtirish\n"
-        "� (a + b) + c = a + (b + c) � guruhlash\n"
-        "� a ? b = a + (?b)\n"
-        "� a ? b ? b ? a\n\n"
-        "?? MANFIY SONLAR\n"
-        "� (+a) + (+b) = a + b\n"
-        "� (?a) + (?b) = ?(a + b)\n"
-        "� a ? (?b) = a + b\n"
-        "� a + (?b) = a ? b\n\n"
-        "?? Ayirishni qo'shishga aylantirib, ikkinchi sonning ishorasini o'zgartirish mumkin."
-    ),
-
-    "mul_div": (
-        "?? KO'PAYTIRISH VA BO'LISH\n\n"
-        "?? ASOSIY FORMULALAR\n"
-        "� a ? b = ko'paytma\n"
-        "� a ? b = bo'linma, b ? 0\n"
-        "� a ? 1 = a\n"
-        "� a ? 0 = 0\n"
-        "� a ? 1 = a\n"
-        "� a ? a = 1, a ? 0\n\n"
-        "?? XOSSALAR\n"
-        "� ab = ba\n"
-        "� (ab)c = a(bc)\n"
-        "� a(b + c) = ab + ac\n"
-        "� a(b ? c) = ab ? ac\n\n"
-        "?? BO'LISHNI TEKSHIRISH\n"
-        "� a = bq + r\n"
-        "� 0 ? r < b\n\n"
-        "?? Nolga bo'lish mumkin emas!"
-    ),
-
-    "percent": (
-        "?? FOIZLAR\n\n"
-        "?? ASOSIY FORMULALAR\n"
-        "� p% = p / 100\n"
-        "� Sonning p% i = Son ? p / 100\n"
-        "� A son B ning necha foizi: p = A / B ? 100%\n"
-        "� Butun son = qism ? 100 / p\n\n"
-        "?? FOIZGA OSHIRISH\n"
-        "� Yangi = Eski ? (1 + p/100)\n\n"
-        "?? FOIZGA KAMAYTIRISH\n"
-        "� Yangi = Eski ? (1 ? p/100)\n\n"
-        "?? O'ZGARISH FOIZI\n"
-        "� O'zgarish % = (Yangi ? Eski) / Eski ? 100%\n\n"
-        "?? KETMA-KET FOIZ O'ZGARISHI\n"
-        "� Yangi = Eski ? (1 � p?/100) ? (1 � p?/100)"
-    ),
-
-    "fraction": (
-        "? KASRLAR\n\n"
-        "?? ASOSIY\n"
-        "� a/b � kasr, b ? 0\n"
-        "� a � surat\n"
-        "� b � maxraj\n\n"
-        "? QO'SHISH\n"
-        "� a/b + c/b = (a+c)/b\n"
-        "� a/b + c/d = (ad+bc)/bd\n\n"
-        "? AYIRISH\n"
-        "� a/b ? c/d = (ad?bc)/bd\n\n"
-        "?? KO'PAYTIRISH\n"
-        "� a/b ? c/d = ac/bd\n\n"
-        "? BO'LISH\n"
-        "� a/b ? c/d = ad/bc\n\n"
-        "?? QISQARTIRISH\n"
-        "� a/b = (a?k)/(b?k)\n\n"
-        "?? ARALASH SON\n"
-        "� m a/b = (mb+a)/b"
-    ),
-
-    "power": (
-        "x? DARAJALAR\n\n"
-        "?? ASOSIY\n"
-        "� a? = a ? a ? ... ? a\n"
-        "� a? = a\n"
-        "� a? = 1, a ? 0\n\n"
-        "?? DARAJA XOSSALARI\n"
-        "� a? ? a? = a???\n"
-        "� a? ? a? = a???, a ? 0\n"
-        "� (a?)? = a??\n"
-        "� (ab)? = a?b?\n"
-        "� (a/b)? = a?/b?, b ? 0\n\n"
-        "?? MANFIY DARAJA\n"
-        "� a?? = 1/a?, a ? 0\n\n"
-        "?? KASR KO'RSATKICH\n"
-        "� a^(1/n) = ?va\n"
-        "� a^(m/n) = ?v(a?)"
-    ),
-
-    "sqrt": (
-        "v ILDIZLAR\n\n"
-        "?? ASOSIY\n"
-        "� va = x ? x? = a, a ? 0\n"
-        "� v(a?) = |a|\n\n"
-        "?? XOSSALAR\n"
-        "� v(ab) = va ? vb\n"
-        "� v(a/b) = va / vb\n"
-        "� ?v(a?) = a � n toq bo'lsa\n"
-        "� ?v(a?) = |a| � n juft bo'lsa\n\n"
-        "?? SODDALASHTIRISH\n"
-        "� v(a?b) = |a|vb\n"
-        "� v12 = 2v3\n\n"
-        "?? MAXRAJNI IRRATSIONALLIKDAN QUTQARISH\n"
-        "� 1/va = va/a, a > 0"
-    ),
-
-    "linear_eq": (
-        "?? CHIZIQLI TENGLAMA\n\n"
-        "?? ASOSIY\n"
-        "� ax + b = 0, a ? 0\n"
-        "� x = ?b/a\n\n"
-        "?? UMUMIY KO'RINISH\n"
-        "� ax + b = cx + d\n"
-        "� x = (d?b)/(a?c), a ? c\n\n"
-        "?? YECHISH TARTIBI\n"
-        "1?? Qavslarni oching.\n"
-        "2?? O'xshash hadlarni ixchamlang.\n"
-        "3?? x li hadlarni bir tomonga o'tkazing.\n"
-        "4?? Sonlarni boshqa tomonga o'tkazing.\n"
-        "5?? x koeffitsientiga bo'ling.\n\n"
-        "?? XOSSALAR\n"
-        "� Tenglamaning ikkala tomoniga bir xil son qo'shish mumkin.\n"
-        "� Tenglamaning ikkala tomonini bir xil nolmas songa ko'paytirish mumkin."
-    ),
-
-    "quad_eq": (
-        "?? KVADRAT TENGLAMA\n\n"
-        "?? UMUMIY KO'RINISH\n"
-        "� ax? + bx + c = 0, a ? 0\n\n"
-        "?? DISKRIMINANT\n"
-        "� D = b? ? 4ac\n\n"
-        "?? ILDIZLAR\n"
-        "� x? = (?b + vD)/(2a)\n"
-        "� x? = (?b ? vD)/(2a)\n\n"
-        "?? HOLATLAR\n"
-        "� D > 0 > 2 ta haqiqiy ildiz\n"
-        "� D = 0 > 1 ta haqiqiy ildiz\n"
-        "� D < 0 > haqiqiy ildiz yo'q\n\n"
-        "?? VIETA\n"
-        "� x? + x? = ?b/a\n"
-        "� x?x? = c/a\n\n"
-        "?? QISQA KO'PAYTIRISH\n"
-        "� (a+b)? = a?+2ab+b?\n"
-        "� (a?b)? = a??2ab+b?\n"
-        "� a??b? = (a?b)(a+b)"
-    ),
-
-    "system_eq": (
-        "?? TENGLAMALAR SISTEMASI\n\n"
-        "?? UMUMIY KO'RINISH\n"
-        "� a?x+b?y=c?\n"
-        "� a?x+b?y=c?\n\n"
-        "?? USULLAR\n"
-        "� O'rniga qo'yish usuli\n"
-        "� Qo'shish/ayirish usuli\n"
-        "� Grafik usul\n\n"
-        "?? KRAMER QOIDASI\n"
-        "� D = a?b??a?b?\n"
-        "� Dx = c?b??c?b?\n"
-        "� Dy = a?c??a?c?\n"
-        "� x = Dx/D\n"
-        "� y = Dy/D\n"
-        "� D ? 0\n\n"
-        "?? YECHIMLAR\n"
-        "� Chiziqlar kesishsa > 1 ta yechim\n"
-        "� Parallel bo'lsa > yechim yo'q\n"
-        "� Ustma-ust tushsa > cheksiz ko'p yechim"
-    ),
-
-    "triangle": (
-        "?? UCHBURCHAK\n\n"
-        "?? PERIMETR\n"
-        "� P = a+b+c\n\n"
-        "?? YUZA\n"
-        "� S = ah/2\n"
-        "� S = ab�sinC/2\n\n"
-        "?? GERON\n"
-        "� p = (a+b+c)/2\n"
-        "� S = v[p(p?a)(p?b)(p?c)]\n\n"
-        "?? PIFAGOR\n"
-        "� a?+b?=c?\n"
-        "� c=v(a?+b?)\n\n"
-        "?? BURCHAKLAR\n"
-        "� A+B+C=180�\n\n"
-        "?? TENG TOMONLI\n"
-        "� P=3a\n"
-        "� h=av3/2\n"
-        "� S=a?v3/4\n\n"
-        "?? AYLANA BILAN BOG'LIQ\n"
-        "� S=pr\n"
-        "� S=abc/(4R)"
-    ),
-
-    "rectangle": (
-        "? TO'RTBURCHAKLAR\n\n"
-        "?? TO'G'RI TO'RTBURCHAK\n"
-        "� P=2(a+b)\n"
-        "� S=ab\n"
-        "� d=v(a?+b?)\n\n"
-        "?? KVADRAT\n"
-        "� P=4a\n"
-        "� S=a?\n"
-        "� d=av2\n\n"
-        "?? PARALLELOGRAMM\n"
-        "� P=2(a+b)\n"
-        "� S=ah\n"
-        "� S=ab�sin?\n\n"
-        "?? ROMB\n"
-        "� P=4a\n"
-        "� S=ah\n"
-        "� S=d?d?/2\n\n"
-        "?? TRAPETSIYA\n"
-        "� S=(a+b)h/2\n"
-        "� m=(a+b)/2\n"
-        "� S=mh"
-    ),
-
-    "circle": (
-        "? AYLANA VA DOIRA\n\n"
-        "?? AYLANA UZUNLIGI\n"
-        "� C=2?r\n"
-        "� C=?d\n\n"
-        "?? DOIRA YUZASI\n"
-        "� S=?r?\n\n"
-        "?? DIAMETR\n"
-        "� d=2r\n"
-        "� r=d/2\n\n"
-        "?? SEKTOR YUZASI\n"
-        "� S=?/360� ? ?r?\n\n"
-        "?? YOY UZUNLIGI\n"
-        "� l=?/360� ? 2?r\n\n"
-        "?? AYLANA TENGLAMASI\n"
-        "� (x?a)?+(y?b)?=r?\n"
-        "� Markaz=(a,b)\n"
-        "� Radius=r"
-    ),
-
-    "ratio": (
-        "?? NISBAT VA PROPORSIYA\n\n"
-        "?? NISBAT\n"
-        "� a:b=a/b\n\n"
-        "?? PROPORSIYA\n"
-        "� a/b=c/d\n"
-        "� ad=bc\n\n"
-        "?? NOMALUM\n"
-        "� x/b=c/d > x=bc/d\n\n"
-        "?? TO'G'RI PROPORSIYA\n"
-        "� y=kx\n        "
-        "� y/x=k\n\n"
-        "?? TESKARI PROPORSIYA\n"
-        "� y=k/x\n"
-        "� xy=k\n\n"
-        "?? MASSHTAB\n"
-        "� Masshtab = xaritadagi masofa / haqiqiy masofa"
-    ),
-
-    "average": (
-        "?? O'RTACHA QIYMAT\n\n"
-        "?? ARIFMETIK O'RTACHA\n"
-        "� x?=(x?+x?+...+x?)/n\n\n"
-        "?? YIG'INDI\n"
-        "� S=x?n\n\n"
-        "?? OG'IRLIKLI O'RTACHA\n"
-        "� x?=(x?w?+x?w?+...+x?w?)/(w?+w?+...+w?)"
-    ),
-
-    "negative": (
-        "? MANFIY SONLAR VA MODUL\n\n"
-        "?? MODUL\n"
-        "� |a|=a, a?0\n"
-        "� |a|=?a, a<0\n"
-        "� |?a|=|a|\n\n"
-        "?? ISHORALAR\n"
-        "� (+)?(+) = +\n"
-        "� (?)?(?) = +\n"
-        "� (+)?(?) = ?\n"
-        "� (?)?(+) = ?\n\n"
-        "?? MASOFA\n"
-        "� |a?b| � a va b orasidagi masofa"
-    ),
-
-    "speed": (
-        "?? TEZLIK � VAQT � MASOFA\n\n"
-        "?? ASOSIY\n"
-        "� S=vt\n"
-        "� v=S/t\n"
-        "� t=S/v\n\n"
-        "?? O'RTACHA TEZLIK\n"
-        "� v???=umumiy masofa/umumiy vaqt\n\n"
-        "?? BIRLIKLAR\n"
-        "� 1 m/s=3.6 km/soat\n"
-        "� 1 km/soat=5/18 m/s"
-    ),
-
-    "bank_percent": (
-        "?? BANK FOIZLARI\n\n"
-        "?? ODDIY FOIZ\n"
-        "� I=Prt\n"
-        "� A=P(1+rt)\n\n"
-        "?? MURAKKAB FOIZ\n"
-        "� A=P(1+r/n)^(nt)\n\n"
-        "?? YILLIK BIR MARTALIK O'SISH\n"
-        "� A=P(1+r)^t\n\n"
-        "P � boshlang'ich summa\n"
-        "r � foiz stavkasi o'nli ko'rinishda\n"
-        "n � yiliga kapitalizatsiya soni\n"
-        "t � vaqt\n"
-        "A � yakuniy summa"
-    ),
-
-    "trig": (
-        "?? TRIGONOMETRIYA\n\n"
-        "?? ASOSIY\n"
-        "� sin?=qarshi katet/gipotenuza\n"
-        "� cos?=yondosh katet/gipotenuza\n"
-        "� tan?=qarshi katet/yondosh katet\n"
-        "� cot?=yondosh katet/qarshi katet\n\n"
-        "?? ASOSIY AYNIYAT\n"
-        "� sin??+cos??=1\n"
-        "� tan?=sin?/cos?\n"
-        "� cot?=cos?/sin?\n\n"
-        "?? QO'SHISH FORMULALARI\n"
-        "� sin(?+?)=sin?cos?+cos?sin?\n"
-        "� sin(???)=sin?cos??cos?sin?\n"
-        "� cos(?+?)=cos?cos??sin?sin?\n"
-        "� cos(???)=cos?cos?+sin?sin?\n\n"
-        "?? IKKI BURCHAK\n"
-        "� sin2?=2sin?cos?\n"
-        "� cos2?=cos???sin??\n"
-        "� tan2?=2tan?/(1?tan??)\n\n"
-        "?? SINUSLAR TEOREMASI\n"
-        "� a/sinA=b/sinB=c/sinC=2R\n\n"
-        "?? KOSINUSLAR TEOREMASI\n"
-        "� c?=a?+b??2ab cosC\n\n"
-        "?? MUHIM QIYMATLAR\n"
-        "� sin30�=1/2\n"
-        "� cos30�=v3/2\n"
-        "� sin45�=cos45�=v2/2\n"
-        "� sin60�=v3/2\n"
-        "� cos60�=1/2\n"
-        "� tan45�=1"
-    ),
-
-    "log": (
-        "?? LOGARIFMLAR\n\n"
-        "?? TA'RIF\n"
-        "� log?b=c ? a?=b\n"
-        "� a>0, a?1, b>0\n\n"
-        "?? ASOSIY XOSSALAR\n"
-        "� log?1=0\n"
-        "� log?a=1\n"
-        "� log?(a?)=x\n"
-        "� a^(log?x)=x\n\n"
-        "?? KO'PAYTMA\n"
-        "� log?(xy)=log?x+log?y\n\n"
-        "?? BO'LISH\n"
-        "� log?(x/y)=log?x?log?y\n\n"
-        "?? DARAJA\n"
-        "� log?(x?)=n log?x\n\n"
-        "?? ASOSNI ALMASHTIRISH\n"
-        "� log?b=log_cb/log_ca\n\n"
-        "?? NATURAL LOGARIFM\n"
-        "� ln x=log?x\n"
-        "� e?2.71828"
-    ),
-
-    "expo_eq": (
-        "?? KO'RSATKICHLI TENGLAMA\n\n"
-        "?? ASOSIY\n"
-        "� a?=b\n"
-        "� a>0, a?1\n\n"
-        "?? BIR XIL ASOS\n"
-        "� a????=a???? > f(x)=g(x)\n\n"
-        "?? DARAJA XOSSALARI\n"
-        "� a?a?=a???\n"
-        "� a?/a?=a???\n"
-        "� (a?)?=a??\n\n"
-        "?? LOGARIFM ORQALI\n"
-        "� a?=b > x=log?b\n"
-        "� e?=b > x=ln b"
-    ),
-
-    "arith_prog": (
-        "?? ARIFMETIK PROGRESSIYA\n\n"
-        "?? n-HAD\n"
-        "� a?=a?+(n?1)d\n\n"
-        "?? AYIRMA\n"
-        "� d=a??a???\n\n"
-        "?? YIG'INDI\n"
-        "� S?=n(a?+a?)/2\n"
-        "� S?=n[2a?+(n?1)d]/2\n\n"
-        "?? O'RTA HAD\n"
-        "� a?=(a???+a???)/2"
-    ),
-
-    "geom_prog": (
-        "?? GEOMETRIK PROGRESSIYA\n\n"
-        "?? n-HAD\n"
-        "� b?=b?q???\n\n"
-        "?? MAXRAJ\n"
-        "� q=b???/b?\n\n"
-        "?? YIG'INDI\n"
-        "� S?=b?(q??1)/(q?1), q?1\n"
-        "� S?=b?(1?q?)/(1?q)\n\n"
-        "?? CHEKSIZ YIG'INDI\n"
-        "� S?=b?/(1?q), |q|<1\n\n"
-        "?? O'RTA HAD\n"
-        "� b??=b???b???"
-    ),
-
-    "combinatorics": (
-        "?? KOMBINATORIKA\n\n"
-        "?? FAKTORIAL\n"
-        "� n!=1?2?3?...?n\n"
-        "� 0!=1\n\n"
-        "?? O'RIN ALMASHTIRISH\n"
-        "� P?=n!\n\n"
-        "?? JOYLASHTIRISH\n"
-        "� A??=n!/(n?k)!\n\n"
-        "?? KOMBINATSIYA\n"
-        "� C??=n!/[k!(n?k)!]\n\n"
-        "?? KOMBINATSIYA XOSSALARI\n"
-        "� C??=C??=1\n"
-        "� C??=C????\n\n"
-        "?? KO'PAYTIRISH QOIDASI\n"
-        "� m?n\n\n"
-        "?? QO'SHISH QOIDASI\n"
-        "� m+n � bir-birini istisno qiluvchi holatlar uchun."
-    ),
+    'add_sub': "вћ• QO'SHISH VA AYIRISH\n\nрџ“Њ ASOSIY FORMULALAR\nвЂў a + b = summa\nвЂў a в€’ b = ayirma\nвЂў a + 0 = a\nвЂў a в€’ 0 = a\nвЂў a в€’ a = 0\n\nрџ“Њ XOSSALAR\nвЂў a + b = b + a вЂ” o'rin almashtirish\nвЂў (a + b) + c = a + (b + c) вЂ” guruhlash\nвЂў a в€’ b = a + (в€’b)\nвЂў a в€’ b в‰  b в€’ a\n\nрџ“Њ MANFIY SONLAR\nвЂў (+a) + (+b) = a + b\nвЂў (в€’a) + (в€’b) = в€’(a + b)\nвЂў a в€’ (в€’b) = a + b\nвЂў a + (в€’b) = a в€’ b",
+    'mul_div': "вњ–пёЏ KO'PAYTIRISH VA BO'LISH\n\nрџ“Њ ASOSIY\nвЂў a Г— b = ko'paytma\nвЂў a Г· b = bo'linma, b в‰  0\nвЂў a Г— 1 = a\nвЂў a Г— 0 = 0\nвЂў a Г· 1 = a\nвЂў a Г· a = 1, a в‰  0\n\nрџ“Њ XOSSALAR\nвЂў ab = ba\nвЂў (ab)c = a(bc)\nвЂў a(b + c) = ab + ac\nвЂў a(b в€’ c) = ab в€’ ac\n\nрџ“Њ BO'LISHNI TEKSHIRISH\nвЂў a = bq + r\nвЂў 0 в‰¤ r < b\n\nвљ пёЏ Nolga bo'lish mumkin emas!",
+    'percent': "рџ“Љ FOIZLAR\n\nрџ“Њ ASOSIY\nвЂў p% = p / 100\nвЂў Sonning p% i = Son Г— p / 100\nвЂў A son B ning necha foizi: p = A / B Г— 100%\nвЂў Butun son = qism Г— 100 / p\n\nрџ“€ FOIZGA OSHIRISH\nвЂў Yangi = Eski Г— (1 + p/100)\n\nрџ“‰ FOIZGA KAMAYTIRISH\nвЂў Yangi = Eski Г— (1 в€’ p/100)\n\nрџ“Њ O'ZGARISH FOIZI\nвЂў O'zgarish % = (Yangi в€’ Eski) / Eski Г— 100%\n\nрџ“Њ KETMA-KET FOIZ O'ZGARISHI\nвЂў Yangi = Eski Г— (1 В± pв‚Ѓ/100) Г— (1 В± pв‚‚/100)",
+    'fraction': "ВЅ KASRLAR\n\nрџ“Њ ASOSIY\nвЂў a/b вЂ” kasr, b в‰  0\nвЂў a вЂ” surat\nвЂў b вЂ” maxraj\n\nвћ• QO'SHISH\nвЂў a/b + c/b = (a+c)/b\nвЂў a/b + c/d = (ad+bc)/bd\n\nвћ– AYIRISH\nвЂў a/b в€’ c/d = (adв€’bc)/bd\n\nвњ–пёЏ KO'PAYTIRISH\nвЂў a/b Г— c/d = ac/bd\n\nвћ— BO'LISH\nвЂў a/b Г· c/d = ad/bc\n\nрџ“Њ QISQARTIRISH\nвЂў a/b = (aГ·k)/(bГ·k)\n\nрџ“Њ ARALASH SON\nвЂў m a/b = (mb+a)/b",
+    'power': "xВІ DARAJALAR\n\nрџ“Њ ASOSIY\nвЂў aвЃї = a Г— a Г— ... Г— a\nвЂў aВ№ = a\nвЂў aвЃ° = 1, a в‰  0\n\nрџ“Њ XOSSALAR\nвЂў aбµђ Г— aвЃї = aбµђвЃєвЃї\nвЂў aбµђ Г· aвЃї = aбµђвЃ»вЃї, a в‰  0\nвЂў (aбµђ)вЃї = aбµђвЃї\nвЂў (ab)вЃї = aвЃїbвЃї\nвЂў (a/b)вЃї = aвЃї/bвЃї, b в‰  0\n\nрџ“Њ MANFIY DARAJA\nвЂў aвЃ»вЃї = 1/aвЃї, a в‰  0\n\nрџ“Њ KASR KO'RSATKICH\nвЂў a^(1/n) = вЃїв€љa\nвЂў a^(m/n) = вЃїв€љ(aбµђ)",
+    'sqrt': "в€љ ILDIZLAR\n\nрџ“Њ ASOSIY\nвЂў в€љa = x в‡” xВІ = a, a в‰Ґ 0\nвЂў в€љ(aВІ) = |a|\n\nрџ“Њ XOSSALAR\nвЂў в€љ(ab) = в€љa Г— в€љb\nвЂў в€љ(a/b) = в€љa / в€љb\nвЂў вЃїв€љ(aвЃї) = a вЂ” n toq bo'lsa\nвЂў вЃїв€љ(aвЃї) = |a| вЂ” n juft bo'lsa\n\nрџ“Њ SODDALASHTIRISH\nвЂў в€љ(aВІb) = |a|в€љb\nвЂў в€љ12 = 2в€љ3\n\nрџ“Њ MAXRAJNI IRRATSIONALLIKDAN QUTQARISH\nвЂў 1/в€љa = в€љa/a, a > 0",
+    'linear_eq': "рџ”¤ CHIZIQLI TENGLAMA\n\nрџ“Њ ASOSIY\nвЂў ax + b = 0, a в‰  0\nвЂў x = в€’b/a\n\nрџ“Њ UMUMIY KO'RINISH\nвЂў ax + b = cx + d\nвЂў x = (dв€’b)/(aв€’c), a в‰  c\n\nрџ“Њ YECHISH TARTIBI\n1пёЏвѓЈ Qavslarni ochish\n2пёЏвѓЈ O'xshash hadlarni ixchamlash\n3пёЏвѓЈ x li hadlarni bir tomonga o'tkazish\n4пёЏвѓЈ Sonlarni boshqa tomonga o'tkazish\n5пёЏвѓЈ x koeffitsientiga bo'lish",
+    'quad_eq': "рџ”¤ KVADRAT TENGLAMA\n\nрџ“Њ UMUMIY KO'RINISH\nвЂў axВІ + bx + c = 0, a в‰  0\n\nрџ“Њ DISKRIMINANT\nвЂў D = bВІ в€’ 4ac\n\nрџ“Њ ILDIZLAR\nвЂў xв‚Ѓ = (в€’b + в€љD)/(2a)\nвЂў xв‚‚ = (в€’b в€’ в€љD)/(2a)\n\nрџ“Њ HOLATLAR\nвЂў D > 0 в†’ 2 ta haqiqiy ildiz\nвЂў D = 0 в†’ 1 ta haqiqiy ildiz\nвЂў D < 0 в†’ haqiqiy ildiz yo'q\n\nрџ“Њ VIETA\nвЂў xв‚Ѓ + xв‚‚ = в€’b/a\nвЂў xв‚Ѓxв‚‚ = c/a\n\nрџ“Њ QISQA KO'PAYTIRISH\nвЂў (a+b)ВІ = aВІ+2ab+bВІ\nвЂў (aв€’b)ВІ = aВІв€’2ab+bВІ\nвЂў aВІв€’bВІ = (aв€’b)(a+b)",
+    'system_eq': "рџ”— TENGLAMALAR SISTEMASI\n\nрџ“Њ 2Г—2 SISTEMA\nвЂў aв‚Ѓx+bв‚Ѓy=cв‚Ѓ\nвЂў aв‚‚x+bв‚‚y=cв‚‚\n\nрџ“Њ USULLAR\nвЂў O'rniga qo'yish\nвЂў Qo'shish/ayirish\nвЂў Grafik usul\n\nрџ“Њ KRAMER QOIDASI\nвЂў D = aв‚Ѓbв‚‚в€’aв‚‚bв‚Ѓ\nвЂў Dx = cв‚Ѓbв‚‚в€’cв‚‚bв‚Ѓ\nвЂў Dy = aв‚Ѓcв‚‚в€’aв‚‚cв‚Ѓ\nвЂў x = Dx/D\nвЂў y = Dy/D\nвЂў D в‰  0",
+    'triangle': 'рџ”є UCHBURCHAK\n\nрџ“Њ PERIMETR\nвЂў P = a+b+c\n\nрџ“Њ YUZA\nвЂў S = ah/2\nвЂў S = abВ·sinC/2\n\nрџ“Њ GERON\nвЂў p = (a+b+c)/2\nвЂў S = в€љ[p(pв€’a)(pв€’b)(pв€’c)]\n\nрџ“Њ PIFAGOR\nвЂў aВІ+bВІ=cВІ\nвЂў c=в€љ(aВІ+bВІ)\n\nрџ“Њ BURCHAKLAR\nвЂў A+B+C=180В°\n\nрџ“Њ TENG TOMONLI\nвЂў P=3a\nвЂў h=aв€љ3/2\nвЂў S=aВІв€љ3/4\n\nрџ“Њ AYLANA BILAN\nвЂў S=pr\nвЂў S=abc/(4R)',
+    'rectangle': "в–­ TO'RTBURCHAKLAR\n\nрџ“Њ TO'G'RI TO'RTBURCHAK\nвЂў P=2(a+b)\nвЂў S=ab\nвЂў d=в€љ(aВІ+bВІ)\n\nрџ“Њ KVADRAT\nвЂў P=4a\nвЂў S=aВІ\nвЂў d=aв€љ2\n\nрџ“Њ PARALLELOGRAMM\nвЂў P=2(a+b)\nвЂў S=ah\nвЂў S=abВ·sinО±\n\nрџ“Њ ROMB\nвЂў P=4a\nвЂў S=ah\nвЂў S=dв‚Ѓdв‚‚/2\n\nрџ“Њ TRAPETSIYA\nвЂў S=(a+b)h/2\nвЂў m=(a+b)/2\nвЂў S=mh",
+    'circle': 'в­• AYLANA VA DOIRA\n\nрџ“Њ AYLANA UZUNLIGI\nвЂў C=2ПЂr\nвЂў C=ПЂd\n\nрџ“Њ DOIRA YUZASI\nвЂў S=ПЂrВІ\n\nрџ“Њ DIAMETR\nвЂў d=2r\nвЂў r=d/2\n\nрџ“Њ SEKTOR YUZASI\nвЂў S=О±/360В° Г— ПЂrВІ\n\nрџ“Њ YOY UZUNLIGI\nвЂў l=О±/360В° Г— 2ПЂr\n\nрџ“Њ AYLANA TENGLAMASI\nвЂў (xв€’a)ВІ+(yв€’b)ВІ=rВІ\nвЂў Markaz=(a,b)\nвЂў Radius=r',
+    'ratio': "вљ–пёЏ NISBAT VA PROPORSIYA\n\nрџ“Њ NISBAT\nвЂў a:b=a/b\n\nрџ“Њ PROPORSIYA\nвЂў a/b=c/d\nвЂў ad=bc\n\nрџ“Њ NOMALUM\nвЂў x/b=c/d в†’ x=bc/d\n\nрџ“Њ TO'G'RI PROPORSIYA\nвЂў y=kx\nвЂў y/x=k\n\nрџ“Њ TESKARI PROPORSIYA\nвЂў y=k/x\nвЂў xy=k\n\nрџ“Њ MASSHTAB\nвЂў Masshtab = xaritadagi masofa / haqiqiy masofa",
+    'average': "рџ“Љ O'RTACHA QIYMAT\n\nрџ“Њ ARIFMETIK O'RTACHA\nвЂў xМ„=(xв‚Ѓ+xв‚‚+...+xв‚™)/n\n\nрџ“Њ YIG'INDI\nвЂў S=xМ„n\n\nрџ“Њ OG'IRLIKLI O'RTACHA\nвЂў xМ„=(xв‚Ѓwв‚Ѓ+xв‚‚wв‚‚+...+xв‚™wв‚™)/(wв‚Ѓ+wв‚‚+...+wв‚™)",
+    'negative': 'вћ– MANFIY SONLAR VA MODUL\n\nрџ“Њ MODUL\nвЂў |a|=a, aв‰Ґ0\nвЂў |a|=в€’a, a<0\nвЂў |в€’a|=|a|\n\nрџ“Њ ISHORALAR\nвЂў (+)Г—(+) = +\nвЂў (в€’)Г—(в€’) = +\nвЂў (+)Г—(в€’) = в€’\nвЂў (в€’)Г—(+) = в€’\n\nрџ“Њ MASOFA\nвЂў |aв€’b| вЂ” a va b orasidagi masofa',
+    'speed': "рџљ— TEZLIK вЂ” VAQT вЂ” MASOFA\n\nрџ“Њ ASOSIY\nвЂў S=vt\nвЂў v=S/t\nвЂў t=S/v\n\nрџ“Њ O'RTACHA TEZLIK\nвЂў vв‚’бµЈв‚њ=umumiy masofa/umumiy vaqt\n\nрџ“Њ BIRLIKLAR\nвЂў 1 m/s=3.6 km/soat\nвЂў 1 km/soat=5/18 m/s",
+    'bank_percent': "рџЏ¦ BANK FOIZLARI\n\nрџ“Њ ODDIY FOIZ\nвЂў I=Prt\nвЂў A=P(1+rt)\n\nрџ“Њ MURAKKAB FOIZ\nвЂў A=P(1+r/n)^(nt)\n\nрџ“Њ YILLIK BIR MARTALIK O'SISH\nвЂў A=P(1+r)^t\n\nP вЂ” boshlang'ich summa\nr вЂ” foiz stavkasi o'nli ko'rinishda\nn вЂ” yiliga kapitalizatsiya soni\nt вЂ” vaqt\nA вЂ” yakuniy summa",
+    'trig': "рџ“ђ TRIGONOMETRIYA\n\nрџ“Њ ASOSIY\nвЂў sinО±=qarshi katet/gipotenuza\nвЂў cosО±=yondosh katet/gipotenuza\nвЂў tanО±=qarshi katet/yondosh katet\nвЂў cotО±=yondosh katet/qarshi katet\n\nрџ“Њ ASOSIY AYNД°YATLAR\nвЂў sinВІО±+cosВІО±=1\nвЂў tanО±=sinО±/cosО±\nвЂў cotО±=cosО±/sinО±\nвЂў 1+tanВІО±=1/cosВІО±\nвЂў 1+cotВІО±=1/sinВІО±\n\nрџ“Њ QO'SHISH\nвЂў sin(О±+ОІ)=sinО±cosОІ+cosО±sinОІ\nвЂў sin(О±в€’ОІ)=sinО±cosОІв€’cosО±sinОІ\nвЂў cos(О±+ОІ)=cosО±cosОІв€’sinО±sinОІ\nвЂў cos(О±в€’ОІ)=cosО±cosОІ+sinО±sinОІ\n\nрџ“Њ IKKI BURCHAK\nвЂў sin2О±=2sinО±cosО±\nвЂў cos2О±=cosВІО±в€’sinВІО±\nвЂў cos2О±=2cosВІО±в€’1\nвЂў cos2О±=1в€’2sinВІО±\nвЂў tan2О±=2tanО±/(1в€’tanВІО±)\n\nрџ“Њ SINUSLAR TEOREMASI\nвЂў a/sinA=b/sinB=c/sinC=2R\n\nрџ“Њ KOSINUSLAR TEOREMASI\nвЂў cВІ=aВІ+bВІв€’2ab cosC\n\nрџ“Њ MUHIM QIYMATLAR\nвЂў sin30В°=1/2\nвЂў cos30В°=в€љ3/2\nвЂў sin45В°=cos45В°=в€љ2/2\nвЂў sin60В°=в€љ3/2\nвЂў cos60В°=1/2\nвЂў tan45В°=1",
+    'log': "рџ“€ LOGARIFMLAR\n\nрџ“Њ TA'RIF\nвЂў logв‚ђb=c в‡” aб¶њ=b\nвЂў a>0, aв‰ 1, b>0\n\nрџ“Њ ASOSIY\nвЂў logв‚ђ1=0\nвЂў logв‚ђa=1\nвЂў logв‚ђ(aЛЈ)=x\nвЂў a^(logв‚ђx)=x\n\nрџ“Њ KO'PAYTMA\nвЂў logв‚ђ(xy)=logв‚ђx+logв‚ђy\n\nрџ“Њ BO'LISH\nвЂў logв‚ђ(x/y)=logв‚ђxв€’logв‚ђy\n\nрџ“Њ DARAJA\nвЂў logв‚ђ(xвЃї)=n logв‚ђx\n\nрџ“Њ ASOSNI ALMASHTIRISH\nвЂў logв‚ђb=log_cb/log_ca\n\nрџ“Њ NATURAL LOGARIFM\nвЂў ln x=logв‚‘x\nвЂў eв‰€2.71828",
+    'expo_eq': "рџ“¶ KO'RSATKICHLI TENGLAMALAR\n\nрџ“Њ ASOSIY\nвЂў aЛЈ=b\nвЂў a>0, aв‰ 1\n\nрџ“Њ BIR XIL ASOS\nвЂў aб¶ вЃЅЛЈвЃѕ=aбµЌвЃЅЛЈвЃѕ в†’ f(x)=g(x)\n\nрџ“Њ DARAJA XOSSALARI\nвЂў aЛЈaКё=aЛЈвЃєКё\nвЂў aЛЈ/aКё=aЛЈвЃ»Кё\nвЂў (aЛЈ)Кё=aЛЈКё\n\nрџ“Њ LOGARIFM ORQALI\nвЂў aЛЈ=b в†’ x=logв‚ђb\nвЂў eЛЈ=b в†’ x=ln b",
+    'arith_prog': "рџ”ў ARIFMETIK PROGRESSIYA\n\nрџ“Њ TA'RIF\nвЂў aв‚™в‚Љв‚Ѓ=aв‚™+d\nвЂў d вЂ” ayirma\n\nрџ“Њ n-HAD\nвЂў aв‚™=aв‚Ѓ+(nв€’1)d\n\nрџ“Њ AYIRMA\nвЂў d=aв‚™в€’aв‚™в‚‹в‚Ѓ\n\nрџ“Њ YIG'INDI\nвЂў Sв‚™=n(aв‚Ѓ+aв‚™)/2\nвЂў Sв‚™=n[2aв‚Ѓ+(nв€’1)d]/2\n\nрџ“Њ O'RTA HAD\nвЂў aв‚™=(aв‚™в‚‹в‚Ѓ+aв‚™в‚Љв‚Ѓ)/2",
+    'geom_prog': "рџ”ў GEOMETRIK PROGRESSIYA\n\nрџ“Њ TA'RIF\nвЂў bв‚™в‚Љв‚Ѓ=bв‚™q\nвЂў q вЂ” maxraj\n\nрџ“Њ n-HAD\nвЂў bв‚™=bв‚ЃqвЃївЃ»В№\n\nрџ“Њ YIG'INDI\nвЂў Sв‚™=bв‚Ѓ(qвЃїв€’1)/(qв€’1), qв‰ 1\nвЂў Sв‚™=bв‚Ѓ(1в€’qвЃї)/(1в€’q)\n\nрџ“Њ CHEKSIZ KAMAYUVCHI\nвЂў Sв€ћ=bв‚Ѓ/(1в€’q)\nвЂў |q|<1\n\nрџ“Њ O'RTA HAD\nвЂў bв‚™ВІ=bв‚™в‚‹в‚ЃГ—bв‚™в‚Љв‚Ѓ",
+    'combinatorics': "рџЋІ KOMBINATORIKA\n\nрџ“Њ FAKTORIAL\nвЂў n!=1Г—2Г—3Г—...Г—n\nвЂў 0!=1\n\nрџ“Њ O'RIN ALMASHTIRISH\nвЂў Pв‚™=n!\n\nрџ“Њ TAKRORLANMAYDIGAN JOYLASHTIRISH\nвЂў Aв‚™бµЏ=n!/(nв€’k)!\n\nрџ“Њ TAKRORLANMAYDIGAN KOMBINATSIYA\nвЂў Cв‚™бµЏ=n!/[k!(nв€’k)!]\n\nрџ“Њ XOSSALAR\nвЂў Cв‚™вЃ°=Cв‚™вЃї=1\nвЂў Cв‚™бµЏ=Cв‚™вЃївЃ»бµЏ\n\nрџ“Њ KO'PAYTIRISH QOIDASI\nвЂў mГ—n\n\nрџ“Њ QO'SHISH QOIDASI\nвЂў m+n вЂ” bir-birini istisno qiluvchi holatlar uchun."
 }
-
 MOTIVATIONS = [
-    "✅ To'g'ri! Zo'r ishladingiz!",
-    "✅ To'g'ri! Ajoyib!",
-    "✅ To'g'ri! Siz iqtidorlisiz!",
-    "✅ To'g'ri! Davom eting!",
-    "✅ To'g'ri! Zo'r natija!",
-    "✅ To'g'ri! Mukammal!",
-    "✅ To'g'ri! Shunday davom eting!",
+    "вњ… To'g'ri! Zo'r ishladingiz!",
+    "вњ… To'g'ri! Ajoyib!",
+    "вњ… To'g'ri! Siz iqtidorlisiz!",
+    "вњ… To'g'ri! Davom eting!",
+    "вњ… To'g'ri! Zo'r natija!",
+    "вњ… To'g'ri! Mukammal!",
+    "вњ… To'g'ri! Shunday davom eting!",
 ]
 
 NAMES_POOL = ["Ahmad", "Vali", "Aziza", "Dilnoza", "Sardor", "Malika", "Jasur", "Nodira", "Bekzod", "Kamola"]
@@ -991,7 +575,7 @@ def ex_add_sub_plain(grade):
     op = random.choice(["+", "-"])
     if op == "-":
         a, b = sorted([random.randint(lo, hi), random.randint(lo, hi)], reverse=True)
-        return f"{a} − {b}", a - b
+        return f"{a} в€’ {b}", a - b
     a, b = random.randint(lo, hi), random.randint(lo, hi)
     return f"{a} + {b}", a + b
 
@@ -1084,8 +668,8 @@ def ex_mul_div_plain(grade):
     a, b = random.randint(lo, hi), random.randint(2, 12)
     op = random.choice(["*", "/"])
     if op == "*":
-        return f"{a} × {b}", a * b
-    return f"{a*b} ÷ {b}", a
+        return f"{a} Г— {b}", a * b
+    return f"{a*b} Г· {b}", a
 
 
 def ex_mul_div_boxes(grade):
@@ -1114,7 +698,7 @@ def ex_mul_div_combo(grade):
     lo, hi = _rng(grade, (2, 6), (5, 15), (10, 25))
     a = random.randint(lo, hi) * c
     b = random.randint(2, 12)
-    return f"({a} × {b}) ÷ {c}", (a * b) // c
+    return f"({a} Г— {b}) Г· {c}", (a * b) // c
 
 
 def ex_mul_div_order_ops(grade):
@@ -1136,16 +720,16 @@ def ex_mul_div_order_ops(grade):
         result = mul1 - mul2
     else:
         result = mul1 + mul2
-    return f"{a} × {b} {op_mid} {c} × {d} = ? (amallar tartibiga rioya qiling)", result
+    return f"{a} Г— {b} {op_mid} {c} Г— {d} = ? (amallar tartibiga rioya qiling)", result
 
 
 def ex_mul_div_distributive(grade):
-    # Taqsimot qonuni: a × (b + c) = a×b + a×c
+    # Taqsimot qonuni: a Г— (b + c) = aГ—b + aГ—c
     lo_a, hi_a = _rng(grade, None, (3, 15), (5, 30))
     a = random.randint(lo_a, hi_a)
     b = random.randint(2, 20)
     c = random.randint(2, 20)
-    return f"Taqsimot qonunidan foydalanib hisoblang: {a} × ({b} + {c}) = ?", a * (b + c)
+    return f"Taqsimot qonunidan foydalanib hisoblang: {a} Г— ({b} + {c}) = ?", a * (b + c)
 
 
 def ex_mul_div_two_step(grade):
@@ -1349,13 +933,13 @@ GEN_FRACTION = [
 def ex_power_square(grade):
     lo, hi = _rng(grade, (2, 10), (11, 25), (20, 40))
     a = random.randint(lo, hi)
-    return f"{a}² = ?", a * a
+    return f"{a}ВІ = ?", a * a
 
 
 def ex_power_cube(grade):
     lo, hi = _rng(grade, (2, 6), (5, 12), (8, 15))
     a = random.randint(lo, hi)
-    return f"{a}³ = ?", a ** 3
+    return f"{a}Ві = ?", a ** 3
 
 
 def ex_power_sum_then_power(grade):
@@ -1367,23 +951,23 @@ def ex_power_sum_then_power(grade):
 def ex_power_diff_then_square(grade):
     a = random.randint(5, 20)
     b = random.randint(1, a - 1)
-    return f"({a}−{b})² = ?", (a - b) ** 2
+    return f"({a}в€’{b})ВІ = ?", (a - b) ** 2
 
 
 def ex_power_law_mul(grade):
-    # aᵐ × aⁿ = aᵐ⁺ⁿ - daraja qonuni (8-9 sinf algebra dasturi)
+    # aбµђ Г— aвЃї = aбµђвЃєвЃї - daraja qonuni (8-9 sinf algebra dasturi)
     base = random.randint(2, 5)
     m = random.randint(1, 4)
     n = random.randint(1, 4)
-    return f"{base}^{m} × {base}^{n} ni {base} ning bitta darajasi ko'rinishida yozsangiz, daraja ko'rsatkichi nechaga teng?", m + n
+    return f"{base}^{m} Г— {base}^{n} ni {base} ning bitta darajasi ko'rinishida yozsangiz, daraja ko'rsatkichi nechaga teng?", m + n
 
 
 def ex_power_law_div(grade):
-    # aᵐ ÷ aⁿ = aᵐ⁻ⁿ (m > n bo'lishi shart)
+    # aбµђ Г· aвЃї = aбµђвЃ»вЃї (m > n bo'lishi shart)
     base = random.randint(2, 5)
     n = random.randint(1, 4)
     m = random.randint(n + 1, n + 5)
-    return f"{base}^{m} ÷ {base}^{n} ni {base} ning bitta darajasi ko'rinishida yozsangiz, daraja ko'rsatkichi nechaga teng?", m - n
+    return f"{base}^{m} Г· {base}^{n} ni {base} ning bitta darajasi ko'rinishida yozsangiz, daraja ko'rsatkichi nechaga teng?", m - n
 
 
 def ex_power_law_value(grade):
@@ -1391,7 +975,7 @@ def ex_power_law_value(grade):
     base = random.choice([2, 3])
     m = random.randint(1, 3)
     n = random.randint(1, 3)
-    return f"{base}^{m} × {base}^{n} necha songa teng? (avval daraja qonunini qo'llang)", base ** (m + n)
+    return f"{base}^{m} Г— {base}^{n} necha songa teng? (avval daraja qonunini qo'llang)", base ** (m + n)
 
 
 GEN_POWER = [
@@ -1415,13 +999,13 @@ PERFECT_SQUARES_ALL = [n * n for n in range(2, 26)]
 def ex_sqrt_direct(grade):
     pool = _rng(grade, PERFECT_SQUARES_EASY, PERFECT_SQUARES_ALL[:20], PERFECT_SQUARES_ALL)
     a = random.choice(pool)
-    return f"√{a} = ?", int(math.sqrt(a))
+    return f"в€љ{a} = ?", int(math.sqrt(a))
 
 
 def ex_sqrt_from_square(grade):
     lo, hi = _rng(grade, (5, 12), (13, 22), (18, 30))
     base = random.randint(lo, hi)
-    return f"√{base*base} = ?", base
+    return f"в€љ{base*base} = ?", base
 
 
 def ex_sqrt_area_to_side(grade):
@@ -1434,7 +1018,7 @@ def ex_sqrt_area_to_side(grade):
 def ex_sqrt_product(grade):
     lo, hi = _rng(grade, (2, 6), (4, 12), (8, 18))
     a, b = random.randint(lo, hi), random.randint(lo, hi)
-    return f"√{a*a} × √{b*b} nechaga teng?", a * b
+    return f"в€љ{a*a} Г— в€љ{b*b} nechaga teng?", a * b
 
 
 def ex_sqrt_estimate(grade):
@@ -1443,16 +1027,16 @@ def ex_sqrt_estimate(grade):
     n = random.randint(4, 29)
     low_root = n
     n_squared_area = random.randint(low_root * low_root + 1, (low_root + 1) * (low_root + 1) - 1)
-    return f"√{n_squared_area} soni qaysi ikkita ketma-ket butun son orasida joylashgan? Kichigini yozing.", low_root
+    return f"в€љ{n_squared_area} soni qaysi ikkita ketma-ket butun son orasida joylashgan? Kichigini yozing.", low_root
 
 
 def ex_sqrt_simplify(grade):
-    # √(a²×b) = a√b ko'rinishida soddalashtirish (b - kvadratsiz son) -
+    # в€љ(aВІГ—b) = aв€љb ko'rinishida soddalashtirish (b - kvadratsiz son) -
     # 10-11 sinf uchun kuchliroq ildiz bilan ishlash ko'nikmasi
     a = random.randint(2, 10)
     b = random.choice([2, 3, 5, 6, 7, 10, 11, 13, 14, 15])
     n = a * a * b
-    return f"√{n} sonini a√{b} ko'rinishida soddalashtiring. a nechaga teng?", a
+    return f"в€љ{n} sonini aв€љ{b} ko'rinishida soddalashtiring. a nechaga teng?", a
 
 
 GEN_SQRT = [
@@ -1501,7 +1085,7 @@ def ex_linear_minus(grade):
     a = random.randint(3, 12)
     b = random.randint(1, 30)
     c = a * x - b
-    return f"{a}x − {b} = {c}, x = ?", x
+    return f"{a}x в€’ {b} = {c}, x = ?", x
 
 
 def ex_linear_parentheses(grade):
@@ -1559,14 +1143,14 @@ GEN_LINEAR_EQ = [
 def ex_quad_pure(grade):
     lo, hi = _rng(grade, (2, 12), (5, 18), (10, 25))
     x = random.randint(lo, hi)
-    return f"x² = {x*x} (x > 0), x = ?", x
+    return f"xВІ = {x*x} (x > 0), x = ?", x
 
 
 def _quad_text(r1, r2):
     b, c = -(r1 + r2), r1 * r2
     sign_b = f"+ {b}x" if b >= 0 else f"- {abs(b)}x"
     sign_c = f"+ {c}" if c >= 0 else f"- {abs(c)}"
-    return f"x² {sign_b} {sign_c} = 0", b, c
+    return f"xВІ {sign_b} {sign_c} = 0", b, c
 
 
 def ex_quad_sum(grade):
@@ -1590,7 +1174,7 @@ def ex_quad_largest(grade):
 
 
 def ex_quad_discriminant(grade):
-    # Diskriminantni hisoblash - D = b² - 4ac (8-9 sinf uchun asosiy ko'nikma)
+    # Diskriminantni hisoblash - D = bВІ - 4ac (8-9 sinf uchun asosiy ko'nikma)
     a = random.randint(1, 3)
     r1, r2 = random.randint(1, 10), random.randint(1, 10)
     b = -a * (r1 + r2)
@@ -1598,15 +1182,15 @@ def ex_quad_discriminant(grade):
     d = b * b - 4 * a * c
     sign_b = f"+ {b}x" if b >= 0 else f"- {abs(b)}x"
     sign_c = f"+ {c}" if c >= 0 else f"- {abs(c)}"
-    coef_a = f"{a}x²" if a != 1 else "x²"
-    return f"{coef_a} {sign_b} {sign_c} = 0 tenglamaning diskriminanti (D = b² − 4ac) nechaga teng?", d
+    coef_a = f"{a}xВІ" if a != 1 else "xВІ"
+    return f"{coef_a} {sign_b} {sign_c} = 0 tenglamaning diskriminanti (D = bВІ в€’ 4ac) nechaga teng?", d
 
 
 def ex_quad_sum_of_squares(grade):
-    # x1² + x2² = (x1+x2)² - 2*x1*x2 ayniyati (kuchliroq, hard darajaga mos)
+    # x1ВІ + x2ВІ = (x1+x2)ВІ - 2*x1*x2 ayniyati (kuchliroq, hard darajaga mos)
     r1, r2 = random.randint(1, 10), random.randint(1, 10)
     eq, b, c = _quad_text(r1, r2)
-    return f"{eq} tenglama ildizlari x1 va x2 bo'lsa, x1² + x2² nechaga teng?", r1 * r1 + r2 * r2
+    return f"{eq} tenglama ildizlari x1 va x2 bo'lsa, x1ВІ + x2ВІ nechaga teng?", r1 * r1 + r2 * r2
 
 
 GEN_QUAD_EQ = [
@@ -1804,12 +1388,12 @@ def _circle_radius(grade):
 
 def ex_circle_area(grade):
     r = _circle_radius(grade)
-    return f"Radiusi {r} bo'lgan doira yuzasi (π=22/7 deb oling)?", int(22 * r * r / 7)
+    return f"Radiusi {r} bo'lgan doira yuzasi (ПЂ=22/7 deb oling)?", int(22 * r * r / 7)
 
 
 def ex_circle_circumference(grade):
     r = _circle_radius(grade)
-    return f"Radiusi {r} bo'lgan doiraning aylana uzunligi (π=22/7 deb oling)?", int(2 * 22 * r / 7)
+    return f"Radiusi {r} bo'lgan doiraning aylana uzunligi (ПЂ=22/7 deb oling)?", int(2 * 22 * r / 7)
 
 
 def ex_circle_radius_from_diameter(grade):
@@ -1826,13 +1410,13 @@ def ex_circle_diameter_from_radius(grade):
 def ex_circle_radius_from_area(grade):
     r = _circle_radius(grade)
     area = int(22 * r * r / 7)
-    return f"Yuzasi {area} bo'lgan doiraning radiusi nechaga teng? (π=22/7 deb oling)", r
+    return f"Yuzasi {area} bo'lgan doiraning radiusi nechaga teng? (ПЂ=22/7 deb oling)", r
 
 
 def ex_circle_radius_from_circumference(grade):
     r = _circle_radius(grade)
     circ = int(2 * 22 * r / 7)
-    return f"Aylana uzunligi {circ} bo'lgan doiraning radiusi nechaga teng? (π=22/7 deb oling)", r
+    return f"Aylana uzunligi {circ} bo'lgan doiraning radiusi nechaga teng? (ПЂ=22/7 deb oling)", r
 
 
 GEN_CIRCLE = [
@@ -1968,7 +1552,7 @@ def ex_negative_mul(grade):
     a, b = random.randint(lo, hi), random.randint(2, 12)
     if random.random() < 0.5:
         b = -b
-    return f"({a}) × ({b})" if b < 0 else f"({a}) × {b}", a * b
+    return f"({a}) Г— ({b})" if b < 0 else f"({a}) Г— {b}", a * b
 
 
 def ex_negative_both(grade):
@@ -1983,7 +1567,7 @@ def ex_negative_temperature(grade):
     delta = random.randint(1, 20)
     op = random.choice(["ko'tarildi", "pasaydi"])
     result = start + delta if op == "ko'tarildi" else start - delta
-    return f"Havo harorati {start}°C edi. Kechqurun {delta}° ga {op}. Hozir harorat necha daraja?", result
+    return f"Havo harorati {start}В°C edi. Kechqurun {delta}В° ga {op}. Hozir harorat necha daraja?", result
 
 
 def ex_negative_chain(grade):
@@ -2011,7 +1595,7 @@ def ex_negative_mul_chain(grade):
         val = sign * random.randint(1, 6)
         factors.append(val)
         result *= val
-    text = " × ".join(f"({f})" if f < 0 else str(f) for f in factors)
+    text = " Г— ".join(f"({f})" if f < 0 else str(f) for f in factors)
     return f"{text} = ?", result
 
 
@@ -2150,15 +1734,15 @@ GEN_BANK_PERCENT = [
 # ---------- trig ----------
 # ============================================================
 TRIG_PERCENT_FACTS = [
-    ("sin(0°)", 0), ("cos(90°)", 0),
-    ("sin(30°)", 50), ("cos(60°)", 50),
-    ("sin(90°)", 100), ("cos(0°)", 100),
+    ("sin(0В°)", 0), ("cos(90В°)", 0),
+    ("sin(30В°)", 50), ("cos(60В°)", 50),
+    ("sin(90В°)", 100), ("cos(0В°)", 100),
 ]
 
 TRIG_QUESTION_TEMPLATES = [
-    "{q} ning qiymati necha foizga teng? (sin(90°) = 100% deb hisoblang)",
-    "{q} nechaga teng, foiz ko'rinishida ayting? (masalan cos(0°) = 100%)",
-    "Agar sin(90°) = 100% desak, {q} necha foizga teng bo'ladi?",
+    "{q} ning qiymati necha foizga teng? (sin(90В°) = 100% deb hisoblang)",
+    "{q} nechaga teng, foiz ko'rinishida ayting? (masalan cos(0В°) = 100%)",
+    "Agar sin(90В°) = 100% desak, {q} necha foizga teng bo'ladi?",
 ]
 
 
@@ -2172,8 +1756,8 @@ def ex_trig_identity(grade):
     known = random.choice(["sin", "cos"])
     other = "cos" if known == "sin" else "sin"
     return (
-        f"sin²α + cos²α = 1 ayniyatiga ko'ra, agar {known}²α = 0 bo'lsa, "
-        f"{other}²α nechaga teng?",
+        f"sinВІО± + cosВІО± = 1 ayniyatiga ko'ra, agar {known}ВІО± = 0 bo'lsa, "
+        f"{other}ВІО± nechaga teng?",
         1,
     )
 
@@ -2181,7 +1765,7 @@ def ex_trig_identity(grade):
 def ex_trig_tan(grade):
     angle = random.choice([0, 45])
     ans = 0 if angle == 0 else 1
-    return f"tan({angle}°) qiymatini toping. (0 yoki 1)", ans
+    return f"tan({angle}В°) qiymatini toping. (0 yoki 1)", ans
 
 
 def ex_trig_pythagorean(grade):
@@ -2198,11 +1782,11 @@ def ex_trig_pythagorean(grade):
 
 
 def ex_trig_sum_angles(grade):
-    # Uchburchak burchaklari yig'indisi 180° - trigonometriyaga tayyorgarlik
+    # Uchburchak burchaklari yig'indisi 180В° - trigonometriyaga tayyorgarlik
     a1 = random.randint(20, 90)
     a2 = random.randint(20, 150 - a1)  # a1+a2 <= 150 bo'lgani uchun a3 >= 30 (har doim musbat)
     a3 = 180 - a1 - a2
-    return f"Uchburchak burchaklaridan ikkitasi {a1}° va {a2}°. Uchinchi burchak nechaga teng?", a3
+    return f"Uchburchak burchaklaridan ikkitasi {a1}В° va {a2}В°. Uchinchi burchak nechaga teng?", a3
 
 
 TRIG_EQUATION_FACTS = [
@@ -2216,7 +1800,7 @@ def ex_trig_equation(grade):
     # Oddiy trigonometrik tenglamani yechish (10-11 sinf) - qiymatlar foiz
     # ko'rinishida berilgani uchun natija ANIQ va butun son bo'ladi
     func, pct, angle = random.choice(TRIG_EQUATION_FACTS)
-    return f"{func}(x°) = {pct}% tenglamani yeching (0° ≤ x ≤ 90°, sin(90°)=100% deb hisoblang). x = ?", angle
+    return f"{func}(xВ°) = {pct}% tenglamani yeching (0В° в‰¤ x в‰¤ 90В°, sin(90В°)=100% deb hisoblang). x = ?", angle
 
 
 GEN_TRIG = [
@@ -2325,7 +1909,7 @@ def ex_expo_product_rule(grade):
     k = random.randint(1, 4)
     x = random.randint(1, 6)
     n = x + k
-    return f"{base}^x × {base}^{k} = {base**n} tenglamani yeching. x = ?", x
+    return f"{base}^x Г— {base}^{k} = {base**n} tenglamani yeching. x = ?", x
 
 
 def ex_expo_divide_rule(grade):
@@ -2334,7 +1918,7 @@ def ex_expo_divide_rule(grade):
     k = random.randint(1, 4)
     n = random.randint(1, 5)
     x = n + k
-    return f"{base}^x ÷ {base}^{k} = {base**n} tenglamani yeching. x = ?", x
+    return f"{base}^x Г· {base}^{k} = {base**n} tenglamani yeching. x = ?", x
 
 
 GEN_EXPO_EQ = [
@@ -2421,9 +2005,9 @@ def ex_geom_find_n(grade):
 
 
 def ex_geom_infinite_sum(grade):
-    # Cheksiz kamayuvchi geometrik progressiya yig'indisi: S = a1 ÷ (1 − q), |q| < 1.
-    # Natija butun son chiqishi uchun q = 1/k va a1 = m×(k−1) qilib tanlanadi:
-    # S = a1 ÷ (1 − 1/k) = a1×k ÷ (k−1) = m×(k−1)×k ÷ (k−1) = m×k
+    # Cheksiz kamayuvchi geometrik progressiya yig'indisi: S = a1 Г· (1 в€’ q), |q| < 1.
+    # Natija butun son chiqishi uchun q = 1/k va a1 = mГ—(kв€’1) qilib tanlanadi:
+    # S = a1 Г· (1 в€’ 1/k) = a1Г—k Г· (kв€’1) = mГ—(kв€’1)Г—k Г· (kв€’1) = mГ—k
     k = random.randint(2, 6)
     m = random.randint(1, 8)
     a1 = m * (k - 1)
@@ -2567,12 +2151,10 @@ def generate_example(user_id, topic, grade="medium"):
     save_to_history(user_id, topic, text)
     return text, answer
 
-    return text, answer
-
 
 def get_hint_keyboard(topic):
     builder = InlineKeyboardBuilder()
-    builder.button(text="💡 Yordam", callback_data=f"hint_{topic}")
+    builder.button(text="рџ’Ў Yordam", callback_data=f"hint_{topic}")
     return builder.as_markup()
 
 
@@ -2624,7 +2206,7 @@ def get_answer_keyboard(topic, options):
     for opt in options:
         builder.button(text=str(opt), callback_data=f"ans_{opt}")
     builder.adjust(2, 2)
-    builder.button(text="💡 Yordam", callback_data=f"hint_{topic}")
+    builder.button(text="рџ’Ў Yordam", callback_data=f"hint_{topic}")
     builder.adjust(2, 2, 1)
     return builder.as_markup()
 
@@ -2668,8 +2250,8 @@ async def end_speedtest(user_id, chat_id):
         update_user(user_id, current_topic=None, current_answer=None)
         await bot.send_message(
             chat_id,
-            f"⏱️ Vaqt tugadi!\n\n"
-            f"60 soniyada siz {count} ta misolni to'g'ri yechdingiz! 🎉\n\n"
+            f"вЏ±пёЏ Vaqt tugadi!\n\n"
+            f"60 soniyada siz {count} ta misolni to'g'ri yechdingiz! рџЋ‰\n\n"
             f"Yana urinish uchun /speedtest yozing."
         )
 
@@ -2679,7 +2261,7 @@ async def end_speedtest(user_id, chat_id):
 async def start_handler(message: types.Message):
     get_user(message.from_user.id, message.from_user.first_name)
     await message.answer(
-        f"Salom, {message.from_user.first_name}! 🤖\n\n"
+        f"Salom, {message.from_user.first_name}! рџ¤–\n\n"
         f"Men matematika mashq botiman.\n\n"
         f"Avval sinf darajangizni tanlang (misollarning qiyinligi va mavzular ro'yxati shunga qarab moslanadi):",
         reply_markup=get_grade_keyboard()
@@ -2695,7 +2277,7 @@ async def grade_chosen(callback: types.CallbackQuery):
 
     await callback.message.edit_text(
         f"Daraja tanlandi: {GRADE_LABELS[grade]}\n\n"
-        f"Endi mavzuni tanlang, yoki pastdagi 📋 Menu tugmasidan barcha buyruqlarni ko'ring:"
+        f"Endi mavzuni tanlang, yoki pastdagi рџ“‹ Menu tugmasidan barcha buyruqlarni ko'ring:"
     )
     await callback.message.answer("Mavzuni tanlang:", reply_markup=get_topics_keyboard(grade))
     await callback.answer()
@@ -2720,8 +2302,8 @@ async def topic_chosen(callback: types.CallbackQuery):
 
     await callback.message.edit_text(
         f"Mavzu: {topic_name}\n\n"
-        f"📝 Misol: {example_text}\n\n"
-        f"To'g'ri javobni tanlang 👇\n\n"
+        f"рџ“ќ Misol: {example_text}\n\n"
+        f"To'g'ri javobni tanlang рџ‘‡\n\n"
         f"(Menu tugmasidan boshqa buyruqlarni tanlashingiz mumkin)",
         reply_markup=get_answer_keyboard(topic, options)
     )
@@ -2753,14 +2335,14 @@ async def answer_button_handler(callback: types.CallbackQuery):
         update_topic_stat(user_id, topic, correct_delta=1)
         add_weekly_correct(user_id)
         new_streak = update_streak(user_id)
-        result_text = f"{random.choice(MOTIVATIONS)} 🔥 Streak: {new_streak} kun"
+        result_text = f"{random.choice(MOTIVATIONS)} рџ”Ґ Streak: {new_streak} kun"
     else:
         update_user(user_id, wrong=user["wrong"] + 1)
         update_topic_stat(user_id, topic, wrong_delta=1)
         old_question = user["current_question"] or "?"
         log_mistake(user_id, topic, old_question, correct_answer)
         solution_hint = HINTS.get(topic, "")
-        result_text = f"❌ Noto'g'ri. To'g'ri javob: {correct_answer}\n📖 Yechim: {solution_hint}"
+        result_text = f"вќЊ Noto'g'ri. To'g'ri javob: {correct_answer}\nрџ“– Yechim: {solution_hint}"
 
     # Keyingi mavzuni tanlaymiz (random/challenge rejimda - yangi tasodifiy mavzu)
     mode = user["current_mode"]
@@ -2780,8 +2362,8 @@ async def answer_button_handler(callback: types.CallbackQuery):
 
     await callback.message.edit_text(
         f"{result_text}\n\n"
-        f"📝 Keyingi misol{topic_label}: {example_text}\n\n"
-        f"To'g'ri javobni tanlang 👇",
+        f"рџ“ќ Keyingi misol{topic_label}: {example_text}\n\n"
+        f"To'g'ri javobni tanlang рџ‘‡",
         reply_markup=get_answer_keyboard(next_topic, options)
     )
     await callback.answer()
@@ -2805,9 +2387,9 @@ async def random_handler(message: types.Message):
     update_user(user_id, current_topic=topic, current_answer=answer, current_question=example_text)
 
     await message.answer(
-        f"🎲 Aralash rejim yoqildi! Har safar boshqa mavzudan savol keladi.\n\n"
-        f"📝 Misol ({TOPICS[topic]}): {example_text}\n\n"
-        f"To'g'ri javobni tanlang 👇",
+        f"рџЋІ Aralash rejim yoqildi! Har safar boshqa mavzudan savol keladi.\n\n"
+        f"рџ“ќ Misol ({TOPICS[topic]}): {example_text}\n\n"
+        f"To'g'ri javobni tanlang рџ‘‡",
         reply_markup=get_answer_keyboard(topic, options)
     )
 
@@ -2824,23 +2406,23 @@ async def challenge_handler(message: types.Message):
     update_user(user_id, current_topic=topic, current_answer=answer, current_question=example_text)
 
     await message.answer(
-        f"⭐ Challenge rejimi! Faqat eng qiyin darajadagi savollar.\n\n"
-        f"📝 Misol ({TOPICS[topic]}): {example_text}\n\n"
-        f"To'g'ri javobni tanlang 👇",
+        f"в­ђ Challenge rejimi! Faqat eng qiyin darajadagi savollar.\n\n"
+        f"рџ“ќ Misol ({TOPICS[topic]}): {example_text}\n\n"
+        f"To'g'ri javobni tanlang рџ‘‡",
         reply_markup=get_answer_keyboard(topic, options)
     )
 
 
 @dp.message(Command("formula"))
 async def formula_handler(message: types.Message):
-    await message.answer("📘 Qaysi mavzu formulasini ko'rmoqchisiz?", reply_markup=get_formula_keyboard())
+    await message.answer("рџ“ Qaysi mavzu formulasini ko'rmoqchisiz?", reply_markup=get_formula_keyboard())
 
 
 @dp.callback_query(F.data.startswith("formula_"))
 async def formula_chosen(callback: types.CallbackQuery):
     topic = callback.data.replace("formula_", "")
     text = FORMULAS.get(topic, "Formula topilmadi.")
-    await callback.message.answer(f"📘 {text}")
+    await callback.message.answer(f"рџ“ {text}")
     await callback.answer()
 
 
@@ -2850,13 +2432,13 @@ async def mistakes_handler(message: types.Message):
     rows = get_recent_mistakes(user_id, limit=8)
 
     if not rows:
-        await message.answer("📖 Hali xatolaringiz yo'q. Zo'r natija!")
+        await message.answer("рџ“– Hali xatolaringiz yo'q. Zo'r natija!")
         return
 
-    text = "📖 Oxirgi xatolaringiz:\n\n"
+    text = "рџ“– Oxirgi xatolaringiz:\n\n"
     for topic, question, correct_answer in rows:
         topic_name = TOPICS.get(topic, topic)
-        text += f"• {topic_name}: {question} → to'g'ri javob: {correct_answer}\n"
+        text += f"вЂў {topic_name}: {question} в†’ to'g'ri javob: {correct_answer}\n"
     text += "\nShu mavzularni qayta mashq qilish uchun Menu orqali /topics ni tanlang."
 
     await message.answer(text)
@@ -2870,11 +2452,11 @@ async def topweek_handler(message: types.Message):
         await message.answer("Bu hafta hali hech kim mashq qilmagan.")
         return
 
-    text = "📅 Haftalik reyting:\n\n"
-    medals = ["🥇", "🥈", "🥉"]
+    text = "рџ“… Haftalik reyting:\n\n"
+    medals = ["рџҐ‡", "рџҐ€", "рџҐ‰"]
     for i, (name, week_correct) in enumerate(rows):
         medal = medals[i] if i < 3 else f"{i+1}."
-        text += f"{medal} {name} — {week_correct} ta to'g'ri\n"
+        text += f"{medal} {name} вЂ” {week_correct} ta to'g'ri\n"
 
     await message.answer(text)
 
@@ -2894,13 +2476,13 @@ async def map_handler(message: types.Message):
 
     rows_sorted = sorted(rows, key=accuracy, reverse=True)
 
-    text = "📊 Bilim xaritangiz:\n\n"
+    text = "рџ“Љ Bilim xaritangiz:\n\n"
     for topic, correct, wrong in rows_sorted:
         total = correct + wrong
         pct = round(correct / total * 100) if total > 0 else 0
         topic_name = TOPICS.get(topic, topic)
         filled = pct // 10
-        bar = "🟩" * filled + "⬜" * (10 - filled)
+        bar = "рџџ©" * filled + "в¬њ" * (10 - filled)
         text += f"{topic_name}\n{bar} {pct}%\n\n"
 
     await message.answer(text)
@@ -2916,11 +2498,11 @@ async def stats_handler(message: types.Message):
     streak = user["streak"] or 0
 
     await message.answer(
-        f"📊 Sizning statistikangiz:\n\n"
-        f"✅ To'g'ri: {correct}\n"
-        f"❌ Noto'g'ri: {wrong}\n"
-        f"🎯 Aniqlik: {percent}%\n"
-        f"🔥 Streak: {streak} kun"
+        f"рџ“Љ Sizning statistikangiz:\n\n"
+        f"вњ… To'g'ri: {correct}\n"
+        f"вќЊ Noto'g'ri: {wrong}\n"
+        f"рџЋЇ Aniqlik: {percent}%\n"
+        f"рџ”Ґ Streak: {streak} kun"
     )
 
 
@@ -2932,11 +2514,11 @@ async def top_handler(message: types.Message):
         await message.answer("Hozircha hech kim mashq qilmagan.")
         return
 
-    text = "🏆 Eng yaxshi 10 ta ishtirokchi:\n\n"
-    medals = ["🥇", "🥈", "🥉"]
+    text = "рџЏ† Eng yaxshi 10 ta ishtirokchi:\n\n"
+    medals = ["рџҐ‡", "рџҐ€", "рџҐ‰"]
     for i, (name, correct, wrong) in enumerate(top_users):
         medal = medals[i] if i < 3 else f"{i+1}."
-        text += f"{medal} {name} — {correct} ta to'g'ri\n"
+        text += f"{medal} {name} вЂ” {correct} ta to'g'ri\n"
 
     await message.answer(text)
 
@@ -2957,7 +2539,7 @@ async def creategroup_handler(message: types.Message):
         return
 
     await message.answer(
-        f"🏫 Guruh yaratildi: {name}\n\n"
+        f"рџЏ« Guruh yaratildi: {name}\n\n"
         f"Qo'shilish kodi: `{code}`\n\n"
         f"O'quvchilaringizga shu kodni bering, ular botga `/joingroup {code}` deb yozishlari kerak.\n"
         f"O'quvchilar ro'yxatini ko'rish uchun /mystudents yozing.",
@@ -2982,7 +2564,7 @@ async def joingroup_handler(message: types.Message):
     get_user(message.from_user.id, message.from_user.first_name)
     update_user(message.from_user.id, group_code=code)
 
-    await message.answer(f"✅ Siz \"{group[2]}\" guruhiga qo'shildingiz!")
+    await message.answer(f"вњ… Siz \"{group[2]}\" guruhiga qo'shildingiz!")
 
 
 @dp.message(Command("mystudents"))
@@ -2997,14 +2579,14 @@ async def mystudents_handler(message: types.Message):
     text = ""
     for code, name in groups:
         students = get_group_students(code)
-        text += f"🏫 {name} (kod: {code})\n"
+        text += f"рџЏ« {name} (kod: {code})\n"
         if not students:
             text += "   Hali o'quvchi qo'shilmagan.\n\n"
             continue
         for first_name, correct, wrong in students:
             total = correct + wrong
             pct = round(correct / total * 100) if total > 0 else 0
-            text += f"   • {first_name} — {correct} to'g'ri ({pct}%)\n"
+            text += f"   вЂў {first_name} вЂ” {correct} to'g'ri ({pct}%)\n"
         text += "\n"
 
     await message.answer(text)
@@ -3016,15 +2598,15 @@ async def path_handler(message: types.Message):
     get_user(user_id, message.from_user.first_name)
     statuses, current_topic = get_path_status(user_id)
 
-    text = "📚 O'quv yo'lingiz:\n\n"
+    text = "рџ“љ O'quv yo'lingiz:\n\n"
     for t, status in statuses:
-        icon = {"done": "✅", "current": "▶️", "locked": "🔒"}[status]
+        icon = {"done": "вњ…", "current": "в–¶пёЏ", "locked": "рџ”’"}[status]
         text += f"{icon} {TOPICS[t]}\n"
 
     text += f"\nHozirgi bosqich: {TOPICS[current_topic]}\n(Bir bosqichni ochish uchun kamida 5 ta savolda 70% to'g'ri javob bering)"
 
     builder = InlineKeyboardBuilder()
-    builder.button(text="▶️ Boshlash", callback_data=f"pathstart_{current_topic}")
+    builder.button(text="в–¶пёЏ Boshlash", callback_data=f"pathstart_{current_topic}")
     await message.answer(text, reply_markup=builder.as_markup())
 
 
@@ -3043,7 +2625,7 @@ async def mycode_handler(message: types.Message):
     get_user(message.from_user.id, message.from_user.first_name)
     code = ensure_personal_code(message.from_user.id)
     await message.answer(
-        f"🔗 Sizning shaxsiy kodingiz: `{code}`\n\n"
+        f"рџ”— Sizning shaxsiy kodingiz: `{code}`\n\n"
         f"Do'stingizga shu kodni bering, u /compare {code} deb yozib natijalaringizni solishtira oladi.",
         parse_mode="Markdown"
     )
@@ -3064,7 +2646,7 @@ async def compare_handler(message: types.Message):
         return
 
     if other["user_id"] == message.from_user.id:
-        await message.answer("Bu sizning o'z kodingiz 🙂 Do'stingizning kodini kiriting.")
+        await message.answer("Bu sizning o'z kodingiz рџ™‚ Do'stingizning kodini kiriting.")
         return
 
     me = get_user(message.from_user.id, message.from_user.first_name)
@@ -3074,9 +2656,9 @@ async def compare_handler(message: types.Message):
     other_pct = round(other["correct"] / other_total * 100) if other_total > 0 else 0
 
     await message.answer(
-        f"🔗 Taqqoslash:\n\n"
-        f"👤 {me['first_name']}: {me['correct']} to'g'ri, {me_pct}% aniqlik, 🔥{me['streak']} kun\n"
-        f"👤 {other['first_name']}: {other['correct']} to'g'ri, {other_pct}% aniqlik, 🔥{other['streak']} kun"
+        f"рџ”— Taqqoslash:\n\n"
+        f"рџ‘¤ {me['first_name']}: {me['correct']} to'g'ri, {me_pct}% aniqlik, рџ”Ґ{me['streak']} kun\n"
+        f"рџ‘¤ {other['first_name']}: {other['correct']} to'g'ri, {other_pct}% aniqlik, рџ”Ґ{other['streak']} kun"
     )
 
 
@@ -3094,8 +2676,8 @@ async def speedtest_handler(message: types.Message):
     update_user(user_id, current_topic="speedtest_add_sub", current_answer=answer)
 
     await message.answer(
-        f"⏱️ Tezlik testi boshlandi! 60 soniyada nechta misol yecha olasiz?\n\n"
-        f"📝 {example_text} = ?"
+        f"вЏ±пёЏ Tezlik testi boshlandi! 60 soniyada nechta misol yecha olasiz?\n\n"
+        f"рџ“ќ {example_text} = ?"
     )
 
     asyncio.create_task(end_speedtest(user_id, message.chat.id))
@@ -3114,13 +2696,13 @@ async def check_answer_handler(message: types.Message):
 
         if user_answer == correct_answer:
             speedtest_active[user_id]["count"] += 1
-            await message.answer("✅ To'g'ri!")
+            await message.answer("вњ… To'g'ri!")
         else:
-            await message.answer(f"❌ Noto'g'ri. To'g'ri javob: {correct_answer}")
+            await message.answer(f"вќЊ Noto'g'ri. To'g'ri javob: {correct_answer}")
 
         example_text, answer = generate_example(user_id, "add_sub", "medium")
         update_user(user_id, current_answer=answer)
-        await message.answer(f"📝 {example_text} = ?")
+        await message.answer(f"рџ“ќ {example_text} = ?")
     else:
         await message.answer("Mavzu tanlash uchun /topics, tezlik testi uchun /speedtest, statistika uchun /stats, reyting uchun /top yozing.")
 
@@ -3155,8 +2737,8 @@ async def daily_reminder_loop():
                 try:
                     await bot.send_message(
                         user_id,
-                        "🔔 Bugun hali mashq qilmadingiz!\n\n"
-                        "5 daqiqa vaqt ajratib, bilimingizni mustahkamlang 💪\n"
+                        "рџ”” Bugun hali mashq qilmadingiz!\n\n"
+                        "5 daqiqa vaqt ajratib, bilimingizni mustahkamlang рџ’Є\n"
                         "Menu tugmasidan /topics ni tanlang va boshlang!"
                     )
                 except Exception:
@@ -3166,23 +2748,23 @@ async def daily_reminder_loop():
 async def set_bot_commands():
     commands = [
         types.BotCommand(command="start", description="Botni ishga tushirish"),
-        types.BotCommand(command="topics", description="📚 Mavzular ro'yxati"),
-        types.BotCommand(command="path", description="🗺️ O'quv yo'lim"),
-        types.BotCommand(command="random", description="🎲 Aralash rejim"),
-        types.BotCommand(command="challenge", description="⭐ Qiyin savollar"),
-        types.BotCommand(command="speedtest", description="⏱️ Tezlik testi"),
-        types.BotCommand(command="formula", description="🧮 Formulalar bazasi"),
-        types.BotCommand(command="mistakes", description="📖 Xatolaringiz"),
-        types.BotCommand(command="map", description="📊 Bilim xaritangiz"),
-        types.BotCommand(command="stats", description="📈 Statistikangiz"),
-        types.BotCommand(command="top", description="🏆 Umumiy reyting"),
-        types.BotCommand(command="topweek", description="📅 Haftalik reyting"),
-        types.BotCommand(command="mycode", description="🔗 Shaxsiy kodim"),
-        types.BotCommand(command="compare", description="🔗 Do'st bilan solishtirish"),
-        types.BotCommand(command="creategroup", description="🏫 Guruh yaratish (o'qituvchi)"),
-        types.BotCommand(command="joingroup", description="🏫 Guruhga qo'shilish"),
-        types.BotCommand(command="mystudents", description="🏫 O'quvchilarim (o'qituvchi)"),
-        types.BotCommand(command="level", description="🎓 Sinf darajasi"),
+        types.BotCommand(command="topics", description="рџ“љ Mavzular ro'yxati"),
+        types.BotCommand(command="path", description="рџ—єпёЏ O'quv yo'lim"),
+        types.BotCommand(command="random", description="рџЋІ Aralash rejim"),
+        types.BotCommand(command="challenge", description="в­ђ Qiyin savollar"),
+        types.BotCommand(command="speedtest", description="вЏ±пёЏ Tezlik testi"),
+        types.BotCommand(command="formula", description="рџ§® Formulalar bazasi"),
+        types.BotCommand(command="mistakes", description="рџ“– Xatolaringiz"),
+        types.BotCommand(command="map", description="рџ“Љ Bilim xaritangiz"),
+        types.BotCommand(command="stats", description="рџ“€ Statistikangiz"),
+        types.BotCommand(command="top", description="рџЏ† Umumiy reyting"),
+        types.BotCommand(command="topweek", description="рџ“… Haftalik reyting"),
+        types.BotCommand(command="mycode", description="рџ”— Shaxsiy kodim"),
+        types.BotCommand(command="compare", description="рџ”— Do'st bilan solishtirish"),
+        types.BotCommand(command="creategroup", description="рџЏ« Guruh yaratish (o'qituvchi)"),
+        types.BotCommand(command="joingroup", description="рџЏ« Guruhga qo'shilish"),
+        types.BotCommand(command="mystudents", description="рџЏ« O'quvchilarim (o'qituvchi)"),
+        types.BotCommand(command="level", description="рџЋ“ Sinf darajasi"),
     ]
     await bot.set_my_commands(commands)
 
