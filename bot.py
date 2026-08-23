@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import asyncio
 import random
 import math
@@ -504,7 +505,7 @@ HINTS = {
 }
 
 # Qaysi mavzularda manfiy javob/variant mantiqan to'g'ri kelishi mumkin
-NEGATIVE_ALLOWED_TOPICS = {"add_sub", "negative", "linear_eq", "system_eq"}
+NEGATIVE_ALLOWED_TOPICS = {"negative", "linear_eq", "system_eq"}
 
 
 def topic_allows_negative(topic):
@@ -2303,11 +2304,14 @@ def _fifth_avg_numbers(count=3, lo=10, hi=60):
 
 # ---------- 5-sinf qo'shish/ayirish ----------
 def f5_add_sub_direct(grade):
+    # 5-sinf uchun javobni manfiy chiqarmaymiz.
     a = random.randint(120, 4500)
     b = random.randint(120, 2800)
-    c = random.randint(50, 1600)
     if random.choice([True, False]):
+        c = random.randint(50, min(1600, a + b - 1))
         return f"{a} + {b} в€’ {c} = ?", a + b - c
+    # (a+b)-a-c = b-c, shuning uchun c < b bo'lishi shart.
+    c = random.randint(50, b - 1)
     total = a + b
     return f"{total} в€’ {a} в€’ {c} = ?", total - a - c
 
