@@ -4,11 +4,16 @@ import math
 import json
 import sqlite3
 import os
+import io
 from datetime import date, timedelta, datetime
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import BufferedInputFile
 from aiohttp import web
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 TOKEN = os.getenv("BOT_TOKEN")
 
@@ -68,6 +73,26 @@ def init_db():
             code TEXT PRIMARY KEY,
             teacher_id INTEGER,
             name TEXT
+        )
+    """)
+    conn.commit()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS daily_stats (
+            user_id INTEGER,
+            day TEXT,
+            correct INTEGER DEFAULT 0,
+            wrong INTEGER DEFAULT 0,
+            PRIMARY KEY (user_id, day)
+        )
+    """)
+    conn.commit()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS review_schedule (
+            user_id INTEGER,
+            topic TEXT,
+            stage INTEGER DEFAULT 0,
+            next_review TEXT,
+            PRIMARY KEY (user_id, topic)
         )
     """)
     conn.commit()
@@ -228,6 +253,107 @@ def get_topic_stats(user_id):
     return rows
 
 
+# ==================== KUNLIK STATISTIKA (maqsad + progress grafigi) ====================
+DAILY_GOAL = 10
+
+
+def log_daily_answer(user_id, correct):
+    today = date.today().isoformat()
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT correct, wrong FROM daily_stats WHERE user_id = ? AND day = ?", (user_id, today))
+    row = cursor.fetchone()
+    if row is None:
+        cursor.execute(
+            "INSERT INTO daily_stats (user_id, day, correct, wrong) VALUES (?, ?, ?, ?)",
+            (user_id, today, 1 if correct else 0, 0 if correct else 1)
+        )
+    else:
+        if correct:
+            cursor.execute("UPDATE daily_stats SET correct = correct + 1 WHERE user_id = ? AND day = ?", (user_id, today))
+        else:
+            cursor.execute("UPDATE daily_stats SET wrong = wrong + 1 WHERE user_id = ? AND day = ?", (user_id, today))
+    conn.commit()
+    conn.close()
+
+
+def get_today_correct(user_id):
+    today = date.today().isoformat()
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT correct FROM daily_stats WHERE user_id = ? AND day = ?", (user_id, today))
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row else 0
+
+
+def get_last_n_days_stats(user_id, n=7):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    days = [(date.today() - timedelta(days=i)).isoformat() for i in range(n - 1, -1, -1)]
+    results = []
+    for d in days:
+        cursor.execute("SELECT correct FROM daily_stats WHERE user_id = ? AND day = ?", (user_id, d))
+        row = cursor.fetchone()
+        results.append((d, row[0] if row else 0))
+    conn.close()
+    return results
+
+
+# ==================== SPACED REPETITION (Takrorlash tizimi) ====================
+REVIEW_INTERVALS = {0: 1, 1: 3, 2: 7}  # stage -> qancha kundan keyin qaytariladi
+
+
+def schedule_review(user_id, topic, stage=0):
+    days_ahead = REVIEW_INTERVALS.get(stage, 1)
+    next_review = (date.today() + timedelta(days=days_ahead)).isoformat()
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT topic FROM review_schedule WHERE user_id = ? AND topic = ?", (user_id, topic))
+    if cursor.fetchone() is None:
+        cursor.execute(
+            "INSERT INTO review_schedule (user_id, topic, stage, next_review) VALUES (?, ?, ?, ?)",
+            (user_id, topic, stage, next_review)
+        )
+    else:
+        cursor.execute(
+            "UPDATE review_schedule SET stage = ?, next_review = ? WHERE user_id = ? AND topic = ?",
+            (stage, next_review, user_id, topic)
+        )
+    conn.commit()
+    conn.close()
+
+
+def remove_review(user_id, topic):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM review_schedule WHERE user_id = ? AND topic = ?", (user_id, topic))
+    conn.commit()
+    conn.close()
+
+
+def get_due_reviews(user_id):
+    today = date.today().isoformat()
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT topic, stage FROM review_schedule WHERE user_id = ? AND next_review <= ?",
+        (user_id, today)
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+
+def get_review_stage(user_id, topic):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT stage FROM review_schedule WHERE user_id = ? AND topic = ?", (user_id, topic))
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row else 0
+
+
 def log_mistake(user_id, topic, question, correct_answer):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
@@ -237,6 +363,7 @@ def log_mistake(user_id, topic, question, correct_answer):
     )
     conn.commit()
     conn.close()
+    schedule_review(user_id, topic, stage=0)
 
 
 def get_recent_mistakes(user_id, limit=8):
@@ -416,8 +543,10 @@ async def start_topic_question(user_id, first_name, topic, message=None, callbac
 
     if callback_message:
         await callback_message.edit_text(text, reply_markup=markup)
+        await send_geometry_image_if_relevant(callback_message.chat.id, topic)
     elif message:
         await message.answer(text, reply_markup=markup)
+        await send_geometry_image_if_relevant(message.chat.id, topic)
 
 
 # ==================== TOPICS ====================
@@ -446,6 +575,109 @@ TOPICS = {
     "geom_prog": "🔢 Geometrik progressiya",
     "combinatorics": "🎲 Kombinatorika",
 }
+
+
+# ==================== GEOMETRIYA RASMLARI ====================
+def draw_triangle_image():
+    fig, ax = plt.subplots(figsize=(4, 3))
+    pts = [(0, 0), (6, 0), (2, 4), (0, 0)]
+    xs, ys = zip(*pts)
+    ax.plot(xs, ys, color="#2563eb", linewidth=2)
+    ax.fill(xs, ys, color="#93c5fd", alpha=0.4)
+    ax.plot([0, 6], [0, 0], color="#dc2626", linewidth=2)
+    ax.text(3, -0.5, "asos", ha="center", color="#dc2626", fontsize=11)
+    ax.plot([2, 2], [0, 4], color="#16a34a", linestyle="--", linewidth=2)
+    ax.text(2.3, 2, "balandlik", color="#16a34a", fontsize=11)
+    ax.set_xlim(-1, 7)
+    ax.set_ylim(-1, 5)
+    ax.axis("off")
+    ax.set_aspect("equal")
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", dpi=100, bbox_inches="tight", transparent=True)
+    plt.close(fig)
+    buf.seek(0)
+    return buf.read()
+
+
+def draw_rectangle_image():
+    fig, ax = plt.subplots(figsize=(4, 3))
+    w, h = 6, 3.5
+    rect = plt.Rectangle((0, 0), w, h, facecolor="#93c5fd", alpha=0.4, edgecolor="#2563eb", linewidth=2)
+    ax.add_patch(rect)
+    ax.text(w / 2, -0.4, "a", ha="center", color="#dc2626", fontsize=13)
+    ax.text(-0.4, h / 2, "b", va="center", color="#16a34a", fontsize=13)
+    ax.set_xlim(-1, w + 1)
+    ax.set_ylim(-1, h + 1)
+    ax.axis("off")
+    ax.set_aspect("equal")
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", dpi=100, bbox_inches="tight", transparent=True)
+    plt.close(fig)
+    buf.seek(0)
+    return buf.read()
+
+
+def draw_circle_image():
+    fig, ax = plt.subplots(figsize=(4, 4))
+    circle = plt.Circle((0, 0), 3, facecolor="#93c5fd", alpha=0.4, edgecolor="#2563eb", linewidth=2)
+    ax.add_patch(circle)
+    ax.plot([0, 3], [0, 0], color="#dc2626", linewidth=2)
+    ax.text(1.5, 0.3, "r", color="#dc2626", fontsize=13)
+    ax.plot(0, 0, "o", color="#1f2937")
+    ax.set_xlim(-4, 4)
+    ax.set_ylim(-4, 4)
+    ax.axis("off")
+    ax.set_aspect("equal")
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", dpi=100, bbox_inches="tight", transparent=True)
+    plt.close(fig)
+    buf.seek(0)
+    return buf.read()
+
+
+GEOMETRY_IMAGE_FUNCS = {
+    "triangle": draw_triangle_image,
+    "rectangle": draw_rectangle_image,
+    "circle": draw_circle_image,
+}
+
+
+async def send_geometry_image_if_relevant(chat_id, topic):
+    """Agar mavzu geometriya bo'lsa (uchburchak/to'rtburchak/doira), tushuntiruvchi rasm yuboradi."""
+    if topic in GEOMETRY_IMAGE_FUNCS:
+        try:
+            image_bytes = GEOMETRY_IMAGE_FUNCS[topic]()
+            photo = BufferedInputFile(image_bytes, filename=f"{topic}.png")
+            await bot.send_photo(chat_id, photo)
+        except Exception:
+            pass  # rasm yuborilmasa ham savolning o'zi ishlashda davom etadi
+
+
+def draw_progress_image(user_id):
+    data = get_last_n_days_stats(user_id, 7)
+    day_labels = []
+    values = []
+    weekday_names = ["Dush", "Sesh", "Chor", "Pay", "Jum", "Shan", "Yak"]
+    for iso_day, correct in data:
+        y, m, d = map(int, iso_day.split("-"))
+        weekday = date(y, m, d).weekday()
+        day_labels.append(weekday_names[weekday])
+        values.append(correct)
+
+    fig, ax = plt.subplots(figsize=(6, 3.2))
+    ax.bar(day_labels, values, color="#3b82f6", width=0.6)
+    ax.set_ylabel("To'g'ri javoblar")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    for i, v in enumerate(values):
+        ax.text(i, v + max(values + [1]) * 0.03, str(v), ha="center", fontsize=9)
+    plt.tight_layout()
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", dpi=110, bbox_inches="tight")
+    plt.close(fig)
+    buf.seek(0)
+    return buf.read()
 
 
 GRADE_LABELS = {
@@ -2307,6 +2539,7 @@ async def topic_chosen(callback: types.CallbackQuery):
         f"(Menu tugmasidan boshqa buyruqlarni tanlashingiz mumkin)",
         reply_markup=get_answer_keyboard(topic, options)
     )
+    await send_geometry_image_if_relevant(callback.message.chat.id, topic)
     await callback.answer()
 
 
@@ -2330,12 +2563,19 @@ async def answer_button_handler(callback: types.CallbackQuery):
         await callback.answer("Bu savol eskirgan. /topics yozing.", show_alert=True)
         return
 
-    if chosen == correct_answer:
+    is_correct = (chosen == correct_answer)
+    log_daily_answer(user_id, is_correct)
+
+    if is_correct:
         update_user(user_id, correct=user["correct"] + 1)
         update_topic_stat(user_id, topic, correct_delta=1)
         add_weekly_correct(user_id)
         new_streak = update_streak(user_id)
         result_text = f"{random.choice(MOTIVATIONS)} 🔥 Streak: {new_streak} kun"
+
+        today_correct = get_today_correct(user_id)
+        if today_correct == DAILY_GOAL:
+            result_text += f"\n\n🎯 Tabriklaymiz! Bugungi {DAILY_GOAL} ta maqsadga yetdingiz!"
     else:
         update_user(user_id, wrong=user["wrong"] + 1)
         update_topic_stat(user_id, topic, wrong_delta=1)
@@ -2344,8 +2584,44 @@ async def answer_button_handler(callback: types.CallbackQuery):
         solution_hint = HINTS.get(topic, "")
         result_text = f"❌ Noto'g'ri. To'g'ri javob: {correct_answer}\n📖 Yechim: {solution_hint}"
 
-    # Keyingi mavzuni tanlaymiz (random/challenge rejimda - yangi tasodifiy mavzu)
     mode = user["current_mode"]
+
+    # === Takrorlash (spaced repetition) rejimi maxsus oqimi ===
+    if mode == "review":
+        stage = get_review_stage(user_id, topic)
+        if is_correct:
+            new_stage = stage + 1
+            if new_stage > 2:
+                remove_review(user_id, topic)
+                result_text += f"\n\n✅ {TOPICS[topic]} mavzusi mustahkamlandi!"
+            else:
+                schedule_review(user_id, topic, new_stage)
+        else:
+            schedule_review(user_id, topic, stage=0)
+
+        due = [t for t, s in get_due_reviews(user_id) if t != topic]
+        if due:
+            next_topic = due[0]
+            example_text, answer = generate_example(user_id, next_topic, user["grade"])
+            options = generate_options(answer, allow_negative=topic_allows_negative(next_topic))
+            update_user(user_id, current_topic=next_topic, current_answer=answer, current_mode="review", current_question=example_text)
+            await callback.message.edit_text(
+                f"{result_text}\n\n"
+                f"🔄 Takrorlash ({TOPICS[next_topic]}): {example_text}\n\n"
+                f"To'g'ri javobni tanlang 👇",
+                reply_markup=get_answer_keyboard(next_topic, options)
+            )
+            await send_geometry_image_if_relevant(callback.message.chat.id, next_topic)
+        else:
+            update_user(user_id, current_mode="normal", current_topic=None, current_answer=None)
+            await callback.message.edit_text(
+                f"{result_text}\n\n"
+                f"🔄 Bugungi barcha takrorlashlar tugadi! Menu orqali /topics ni tanlashingiz mumkin."
+            )
+        await callback.answer()
+        return
+
+    # === Oddiy / random / challenge rejim davomi ===
     if mode == "random":
         next_topic = random.choice(topics_for_grade(user["grade"]))
     elif mode == "challenge":
@@ -2366,6 +2642,7 @@ async def answer_button_handler(callback: types.CallbackQuery):
         f"To'g'ri javobni tanlang 👇",
         reply_markup=get_answer_keyboard(next_topic, options)
     )
+    await send_geometry_image_if_relevant(callback.message.chat.id, next_topic)
     await callback.answer()
 
 
@@ -2392,6 +2669,7 @@ async def random_handler(message: types.Message):
         f"To'g'ri javobni tanlang 👇",
         reply_markup=get_answer_keyboard(topic, options)
     )
+    await send_geometry_image_if_relevant(message.chat.id, topic)
 
 
 @dp.message(Command("challenge"))
@@ -2411,6 +2689,7 @@ async def challenge_handler(message: types.Message):
         f"To'g'ri javobni tanlang 👇",
         reply_markup=get_answer_keyboard(topic, options)
     )
+    await send_geometry_image_if_relevant(message.chat.id, topic)
 
 
 @dp.message(Command("formula"))
@@ -2592,6 +2871,59 @@ async def mystudents_handler(message: types.Message):
     await message.answer(text)
 
 
+@dp.message(Command("goal"))
+async def goal_handler(message: types.Message):
+    user_id = message.from_user.id
+    get_user(user_id, message.from_user.first_name)
+    today_correct = get_today_correct(user_id)
+    filled = min(10, round(today_correct / DAILY_GOAL * 10))
+    bar = "🟩" * filled + "⬜" * (10 - filled)
+
+    if today_correct >= DAILY_GOAL:
+        text = f"🎯 Kunlik maqsad: {today_correct}/{DAILY_GOAL}\n{bar}\n\n✅ Bugungi maqsadga yetdingiz! Zo'r natija!"
+    else:
+        qoldi = DAILY_GOAL - today_correct
+        text = f"🎯 Kunlik maqsad: {today_correct}/{DAILY_GOAL}\n{bar}\n\nMaqsadga yetish uchun yana {qoldi} ta to'g'ri javob kerak. /topics orqali boshlang!"
+
+    await message.answer(text)
+
+
+@dp.message(Command("progress"))
+async def progress_handler(message: types.Message):
+    user_id = message.from_user.id
+    get_user(user_id, message.from_user.first_name)
+    try:
+        image_bytes = draw_progress_image(user_id)
+        photo = BufferedInputFile(image_bytes, filename="progress.png")
+        await message.answer_photo(photo, caption="📉 Oxirgi 7 kunlik natijangiz")
+    except Exception:
+        await message.answer("Grafikni chizishda xatolik yuz berdi. Birozdan keyin qayta urinib ko'ring.")
+
+
+@dp.message(Command("review"))
+async def review_handler(message: types.Message):
+    user_id = message.from_user.id
+    user = get_user(user_id, message.from_user.first_name)
+
+    due = get_due_reviews(user_id)
+    if not due:
+        await message.answer("🔄 Hozircha takrorlash kerak bo'lgan mavzu yo'q. Zo'r natija!")
+        return
+
+    topic = due[0][0]
+    example_text, answer = generate_example(user_id, topic, user["grade"])
+    options = generate_options(answer, allow_negative=topic_allows_negative(topic))
+    update_user(user_id, current_topic=topic, current_answer=answer, current_mode="review", current_question=example_text)
+
+    await message.answer(
+        f"🔄 Takrorlash rejimi — avval xato qilgan mavzularingiz qaytariladi.\n\n"
+        f"Mavzu ({TOPICS[topic]}): {example_text}\n\n"
+        f"To'g'ri javobni tanlang 👇",
+        reply_markup=get_answer_keyboard(topic, options)
+    )
+    await send_geometry_image_if_relevant(message.chat.id, topic)
+
+
 @dp.message(Command("path"))
 async def path_handler(message: types.Message):
     user_id = message.from_user.id
@@ -2764,6 +3096,9 @@ async def set_bot_commands():
         types.BotCommand(command="creategroup", description="🏫 Guruh yaratish (o'qituvchi)"),
         types.BotCommand(command="joingroup", description="🏫 Guruhga qo'shilish"),
         types.BotCommand(command="mystudents", description="🏫 O'quvchilarim (o'qituvchi)"),
+        types.BotCommand(command="goal", description="🎯 Kunlik maqsad"),
+        types.BotCommand(command="progress", description="📉 Progress grafigi"),
+        types.BotCommand(command="review", description="🔄 Takrorlash"),
         types.BotCommand(command="level", description="🎓 Sinf darajasi"),
     ]
     await bot.set_my_commands(commands)
