@@ -4,16 +4,11 @@ import math
 import json
 import sqlite3
 import os
-import io
 from datetime import date, timedelta, datetime
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types import BufferedInputFile
 from aiohttp import web
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 
 TOKEN = os.getenv("BOT_TOKEN")
 
@@ -73,26 +68,6 @@ def init_db():
             code TEXT PRIMARY KEY,
             teacher_id INTEGER,
             name TEXT
-        )
-    """)
-    conn.commit()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS daily_stats (
-            user_id INTEGER,
-            day TEXT,
-            correct INTEGER DEFAULT 0,
-            wrong INTEGER DEFAULT 0,
-            PRIMARY KEY (user_id, day)
-        )
-    """)
-    conn.commit()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS review_schedule (
-            user_id INTEGER,
-            topic TEXT,
-            stage INTEGER DEFAULT 0,
-            next_review TEXT,
-            PRIMARY KEY (user_id, topic)
         )
     """)
     conn.commit()
@@ -253,107 +228,6 @@ def get_topic_stats(user_id):
     return rows
 
 
-# ==================== KUNLIK STATISTIKA (maqsad + progress grafigi) ====================
-DAILY_GOAL = 10
-
-
-def log_daily_answer(user_id, correct):
-    today = date.today().isoformat()
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT correct, wrong FROM daily_stats WHERE user_id = ? AND day = ?", (user_id, today))
-    row = cursor.fetchone()
-    if row is None:
-        cursor.execute(
-            "INSERT INTO daily_stats (user_id, day, correct, wrong) VALUES (?, ?, ?, ?)",
-            (user_id, today, 1 if correct else 0, 0 if correct else 1)
-        )
-    else:
-        if correct:
-            cursor.execute("UPDATE daily_stats SET correct = correct + 1 WHERE user_id = ? AND day = ?", (user_id, today))
-        else:
-            cursor.execute("UPDATE daily_stats SET wrong = wrong + 1 WHERE user_id = ? AND day = ?", (user_id, today))
-    conn.commit()
-    conn.close()
-
-
-def get_today_correct(user_id):
-    today = date.today().isoformat()
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT correct FROM daily_stats WHERE user_id = ? AND day = ?", (user_id, today))
-    row = cursor.fetchone()
-    conn.close()
-    return row[0] if row else 0
-
-
-def get_last_n_days_stats(user_id, n=7):
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    days = [(date.today() - timedelta(days=i)).isoformat() for i in range(n - 1, -1, -1)]
-    results = []
-    for d in days:
-        cursor.execute("SELECT correct FROM daily_stats WHERE user_id = ? AND day = ?", (user_id, d))
-        row = cursor.fetchone()
-        results.append((d, row[0] if row else 0))
-    conn.close()
-    return results
-
-
-# ==================== SPACED REPETITION (Takrorlash tizimi) ====================
-REVIEW_INTERVALS = {0: 1, 1: 3, 2: 7}  # stage -> qancha kundan keyin qaytariladi
-
-
-def schedule_review(user_id, topic, stage=0):
-    days_ahead = REVIEW_INTERVALS.get(stage, 1)
-    next_review = (date.today() + timedelta(days=days_ahead)).isoformat()
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT topic FROM review_schedule WHERE user_id = ? AND topic = ?", (user_id, topic))
-    if cursor.fetchone() is None:
-        cursor.execute(
-            "INSERT INTO review_schedule (user_id, topic, stage, next_review) VALUES (?, ?, ?, ?)",
-            (user_id, topic, stage, next_review)
-        )
-    else:
-        cursor.execute(
-            "UPDATE review_schedule SET stage = ?, next_review = ? WHERE user_id = ? AND topic = ?",
-            (stage, next_review, user_id, topic)
-        )
-    conn.commit()
-    conn.close()
-
-
-def remove_review(user_id, topic):
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM review_schedule WHERE user_id = ? AND topic = ?", (user_id, topic))
-    conn.commit()
-    conn.close()
-
-
-def get_due_reviews(user_id):
-    today = date.today().isoformat()
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT topic, stage FROM review_schedule WHERE user_id = ? AND next_review <= ?",
-        (user_id, today)
-    )
-    rows = cursor.fetchall()
-    conn.close()
-    return rows
-
-
-def get_review_stage(user_id, topic):
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT stage FROM review_schedule WHERE user_id = ? AND topic = ?", (user_id, topic))
-    row = cursor.fetchone()
-    conn.close()
-    return row[0] if row else 0
-
-
 def log_mistake(user_id, topic, question, correct_answer):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
@@ -363,7 +237,6 @@ def log_mistake(user_id, topic, question, correct_answer):
     )
     conn.commit()
     conn.close()
-    schedule_review(user_id, topic, stage=0)
 
 
 def get_recent_mistakes(user_id, limit=8):
@@ -536,168 +409,67 @@ async def start_topic_question(user_id, first_name, topic, message=None, callbac
 
     text = (
         f"Mavzu: {TOPICS[topic]}\n\n"
-        f"📝 Misol: {example_text}\n\n"
-        f"To'g'ri javobni tanlang 👇"
+        f"рџ“ќ Misol: {example_text}\n\n"
+        f"To'g'ri javobni tanlang рџ‘‡"
     )
     markup = get_answer_keyboard(topic, options)
 
     if callback_message:
         await callback_message.edit_text(text, reply_markup=markup)
-        await send_geometry_image_if_relevant(callback_message.chat.id, topic)
     elif message:
         await message.answer(text, reply_markup=markup)
-        await send_geometry_image_if_relevant(message.chat.id, topic)
 
 
 # ==================== TOPICS ====================
 TOPICS = {
-    "add_sub": "➕ Qo'shish/Ayirish",
-    "mul_div": "✖️ Ko'paytirish/Bo'lish",
+    "add_sub": "вћ• Qo'shish/Ayirish",
+    "mul_div": "вњ–пёЏ Ko'paytirish/Bo'lish",
     "percent": "% Foizlar",
-    "fraction": "½ Kasrlar",
-    "power": "x² Darajalar",
-    "sqrt": "√ Kvadrat ildiz",
-    "linear_eq": "🔤 Chiziqli tenglama",
-    "quad_eq": "🔤 Kvadrat tenglama",
-    "system_eq": "🔗 Tenglamalar sistemasi",
-    "triangle": "🔺 Uchburchak",
-    "rectangle": "▭ To'rtburchak",
-    "circle": "⭕ Doira",
-    "ratio": "⚖️ Nisbat",
-    "average": "📊 O'rtacha qiymat",
-    "negative": "➖ Manfiy sonlar",
-    "speed": "🚗 Tezlik-vaqt-masofa",
-    "bank_percent": "🏦 Foiz o'sishi",
-    "trig": "📐 Trigonometriya",
-    "log": "📈 Logarifm",
-    "expo_eq": "📶 Ko'rsatkichli tenglama",
-    "arith_prog": "🔢 Arifmetik progressiya",
-    "geom_prog": "🔢 Geometrik progressiya",
-    "combinatorics": "🎲 Kombinatorika",
+    "fraction": "ВЅ Kasrlar",
+    "power": "xВІ Darajalar",
+    "sqrt": "в€љ Kvadrat ildiz",
+    "linear_eq": "рџ”¤ Chiziqli tenglama",
+    "quad_eq": "рџ”¤ Kvadrat tenglama",
+    "system_eq": "рџ”— Tenglamalar sistemasi",
+    "triangle": "рџ”є Uchburchak",
+    "rectangle": "в–­ To'rtburchak",
+    "circle": "в­• Doira",
+    "ratio": "вљ–пёЏ Nisbat",
+    "average": "рџ“Љ O'rtacha qiymat",
+    "negative": "вћ– Manfiy sonlar",
+    "speed": "рџљ— Tezlik-vaqt-masofa",
+    "bank_percent": "рџЏ¦ Foiz o'sishi",
+    "trig": "рџ“ђ Trigonometriya",
+    "log": "рџ“€ Logarifm",
+    "expo_eq": "рџ“¶ Ko'rsatkichli tenglama",
+    "arith_prog": "рџ”ў Arifmetik progressiya",
+    "geom_prog": "рџ”ў Geometrik progressiya",
+    "combinatorics": "рџЋІ Kombinatorika",
 }
-
-
-# ==================== GEOMETRIYA RASMLARI ====================
-def draw_triangle_image():
-    fig, ax = plt.subplots(figsize=(4, 3))
-    pts = [(0, 0), (6, 0), (2, 4), (0, 0)]
-    xs, ys = zip(*pts)
-    ax.plot(xs, ys, color="#2563eb", linewidth=2)
-    ax.fill(xs, ys, color="#93c5fd", alpha=0.4)
-    ax.plot([0, 6], [0, 0], color="#dc2626", linewidth=2)
-    ax.text(3, -0.5, "asos", ha="center", color="#dc2626", fontsize=11)
-    ax.plot([2, 2], [0, 4], color="#16a34a", linestyle="--", linewidth=2)
-    ax.text(2.3, 2, "balandlik", color="#16a34a", fontsize=11)
-    ax.set_xlim(-1, 7)
-    ax.set_ylim(-1, 5)
-    ax.axis("off")
-    ax.set_aspect("equal")
-    buf = io.BytesIO()
-    plt.savefig(buf, format="png", dpi=100, bbox_inches="tight", transparent=True)
-    plt.close(fig)
-    buf.seek(0)
-    return buf.read()
-
-
-def draw_rectangle_image():
-    fig, ax = plt.subplots(figsize=(4, 3))
-    w, h = 6, 3.5
-    rect = plt.Rectangle((0, 0), w, h, facecolor="#93c5fd", alpha=0.4, edgecolor="#2563eb", linewidth=2)
-    ax.add_patch(rect)
-    ax.text(w / 2, -0.4, "a", ha="center", color="#dc2626", fontsize=13)
-    ax.text(-0.4, h / 2, "b", va="center", color="#16a34a", fontsize=13)
-    ax.set_xlim(-1, w + 1)
-    ax.set_ylim(-1, h + 1)
-    ax.axis("off")
-    ax.set_aspect("equal")
-    buf = io.BytesIO()
-    plt.savefig(buf, format="png", dpi=100, bbox_inches="tight", transparent=True)
-    plt.close(fig)
-    buf.seek(0)
-    return buf.read()
-
-
-def draw_circle_image():
-    fig, ax = plt.subplots(figsize=(4, 4))
-    circle = plt.Circle((0, 0), 3, facecolor="#93c5fd", alpha=0.4, edgecolor="#2563eb", linewidth=2)
-    ax.add_patch(circle)
-    ax.plot([0, 3], [0, 0], color="#dc2626", linewidth=2)
-    ax.text(1.5, 0.3, "r", color="#dc2626", fontsize=13)
-    ax.plot(0, 0, "o", color="#1f2937")
-    ax.set_xlim(-4, 4)
-    ax.set_ylim(-4, 4)
-    ax.axis("off")
-    ax.set_aspect("equal")
-    buf = io.BytesIO()
-    plt.savefig(buf, format="png", dpi=100, bbox_inches="tight", transparent=True)
-    plt.close(fig)
-    buf.seek(0)
-    return buf.read()
-
-
-GEOMETRY_IMAGE_FUNCS = {
-    "triangle": draw_triangle_image,
-    "rectangle": draw_rectangle_image,
-    "circle": draw_circle_image,
-}
-
-
-async def send_geometry_image_if_relevant(chat_id, topic):
-    """Agar mavzu geometriya bo'lsa (uchburchak/to'rtburchak/doira), tushuntiruvchi rasm yuboradi."""
-    if topic in GEOMETRY_IMAGE_FUNCS:
-        try:
-            image_bytes = GEOMETRY_IMAGE_FUNCS[topic]()
-            photo = BufferedInputFile(image_bytes, filename=f"{topic}.png")
-            await bot.send_photo(chat_id, photo)
-        except Exception:
-            pass  # rasm yuborilmasa ham savolning o'zi ishlashda davom etadi
-
-
-def draw_progress_image(user_id):
-    data = get_last_n_days_stats(user_id, 7)
-    day_labels = []
-    values = []
-    weekday_names = ["Dush", "Sesh", "Chor", "Pay", "Jum", "Shan", "Yak"]
-    for iso_day, correct in data:
-        y, m, d = map(int, iso_day.split("-"))
-        weekday = date(y, m, d).weekday()
-        day_labels.append(weekday_names[weekday])
-        values.append(correct)
-
-    fig, ax = plt.subplots(figsize=(6, 3.2))
-    ax.bar(day_labels, values, color="#3b82f6", width=0.6)
-    ax.set_ylabel("To'g'ri javoblar")
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    for i, v in enumerate(values):
-        ax.text(i, v + max(values + [1]) * 0.03, str(v), ha="center", fontsize=9)
-    plt.tight_layout()
-
-    buf = io.BytesIO()
-    plt.savefig(buf, format="png", dpi=110, bbox_inches="tight")
-    plt.close(fig)
-    buf.seek(0)
-    return buf.read()
 
 
 GRADE_LABELS = {
-    "easy": "🟢 5-7 sinf",
-    "medium": "🟡 8-9 sinf",
-    "hard": "🔴 10-11 sinf",
+    "easy": "рџџў 5-sinf",
+    "medium": "рџџЎ 8-9 sinf",
+    "hard": "рџ”ґ 10-11 sinf",
 }
 
-# Har bir sinf darajasida o'quvchiga qaysi mavzular ko'rsatilishi kerak.
-# Daraja o'sishi bilan oldingi darajaning mavzulari ham saqlanib qoladi
-# (masalan 8-9 sinf o'quvchisi 5-7 sinf mavzularini ham ko'radi).
+# 5-sinf endi mustaqil daraja sifatida ishlaydi.
+# 6-7 sinf keyingi bosqichda alohida qo'shiladi.
 GRADE_TOPICS = {
     "easy": [
-        "add_sub", "negative", "mul_div", "fraction", "percent",
-        "power", "sqrt", "ratio", "average", "linear_eq",
-        "triangle", "rectangle", "circle", "speed",
+        "add_sub", "mul_div", "fraction", "percent", "power",
+        "ratio", "average", "linear_eq", "triangle", "rectangle", "speed",
     ],
 }
-GRADE_TOPICS["medium"] = GRADE_TOPICS["easy"] + [
-    "quad_eq", "system_eq", "bank_percent", "trig", "arith_prog", "geom_prog",
+
+# 8-9 va 10-11 sinfning avvalgi mavzularini saqlab qolamiz;
+# ular hozircha 5-sinf blokiga bog'lanmaydi.
+GRADE_TOPICS["medium"] = [
+    "add_sub", "negative", "mul_div", "fraction", "percent", "power",
+    "sqrt", "ratio", "average", "linear_eq", "triangle", "rectangle",
+    "circle", "speed", "quad_eq", "system_eq", "bank_percent", "trig",
+    "arith_prog", "geom_prog",
 ]
 GRADE_TOPICS["hard"] = GRADE_TOPICS["medium"] + ["log", "expo_eq", "combinatorics"]
 
@@ -708,26 +480,26 @@ def topics_for_grade(grade):
 HINTS = {
     "add_sub": "Sonlarni raqam ustuniga joylab, o'ngdan chapga qo'shing/ayiring.",
     "mul_div": "Ko'paytirish jadvalini eslang, bo'lishda qaysi songa necha marta sig'ishini toping.",
-    "percent": "Foizni 100 ga bo'lib, songa ko'paytiring: son × foiz ÷ 100.",
+    "percent": "Foizni 100 ga bo'lib, songa ko'paytiring: son Г— foiz Г· 100.",
     "fraction": "Avval sonni maxrajga bo'ling, keyin suratga ko'paytiring.",
     "power": "Daraja - sonni o'zi bilan necha marta ko'paytirish kerakligini bildiradi.",
     "sqrt": "Qaysi son o'zi bilan ko'paytirilganda shu songa teng bo'lishini toping.",
     "linear_eq": "Avval erkin hadni ikkala tomondan ayiring, keyin x oldidagi songa bo'ling.",
     "quad_eq": "Ildizlar yig'indisi -b, ko'paytmasi c ga teng (Vieta teoremasi).",
     "system_eq": "Ikkinchi tenglamadan bitta o'zgaruvchini ifodalab, birinchisiga qo'ying (o'rniga qo'yish usuli) yoki ikkala tenglamani mos songa ko'paytirib qo'shing/ayiring (qo'shish usuli).",
-    "triangle": "Uchburchak yuzasi = (asos × balandlik) ÷ 2.",
-    "rectangle": "To'rtburchak yuzasi = tomon × tomon.",
-    "circle": "Doira yuzasi = π × r × r.",
+    "triangle": "Uchburchak yuzasi = (asos Г— balandlik) Г· 2.",
+    "rectangle": "To'rtburchak yuzasi = tomon Г— tomon.",
+    "circle": "Doira yuzasi = ПЂ Г— r Г— r.",
     "ratio": "Nisbatning ikkala tomonini bir xil songa ko'paytiring yoki bo'ling.",
     "average": "Barcha sonlarni qo'shib, sonlar soniga bo'ling.",
     "negative": "Manfiy sonlar bilan ishlashda son o'qini tasavvur qiling.",
-    "speed": "Masofa = tezlik × vaqt.",
-    "bank_percent": "Foiz summasi = depozit × foiz ÷ 100.",
-    "trig": "Asosiy burchaklar (0°, 30°, 45°, 60°, 90°) qiymatlarini yodda tuting.",
+    "speed": "Masofa = tezlik Г— vaqt.",
+    "bank_percent": "Foiz summasi = depozit Г— foiz Г· 100.",
+    "trig": "Asosiy burchaklar (0В°, 30В°, 45В°, 60В°, 90В°) qiymatlarini yodda tuting.",
     "log": "log_a(b) = c degani a^c = b degani.",
     "expo_eq": "Ikkala tomonni bir xil asosga keltiring, so'ng darajalarni tenglashtiring: a^x = a^n bo'lsa, x = n.",
-    "arith_prog": "a_n = a1 + (n-1) × d formulasidan foydalaning.",
-    "geom_prog": "a_n = a1 × q^(n-1) formulasidan foydalaning.",
+    "arith_prog": "a_n = a1 + (n-1) Г— d formulasidan foydalaning.",
+    "geom_prog": "a_n = a1 Г— q^(n-1) formulasidan foydalaning.",
     "combinatorics": "Tartib muhim bo'lsa - o'rin almashtirish (P/A), tartib muhim bo'lmasa - kombinatsiya (C) formulasidan foydalaning.",
 }
 
@@ -740,38 +512,226 @@ def topic_allows_negative(topic):
 
 
 FORMULAS = {
-    'add_sub': "➕ QO'SHISH VA AYIRISH\n\n📌 ASOSIY FORMULALAR\n• a + b = summa\n• a − b = ayirma\n• a + 0 = a\n• a − 0 = a\n• a − a = 0\n\n📌 XOSSALAR\n• a + b = b + a — o'rin almashtirish\n• (a + b) + c = a + (b + c) — guruhlash\n• a − b = a + (−b)\n• a − b ≠ b − a\n\n📌 MANFIY SONLAR\n• (+a) + (+b) = a + b\n• (−a) + (−b) = −(a + b)\n• a − (−b) = a + b\n• a + (−b) = a − b",
-    'mul_div': "✖️ KO'PAYTIRISH VA BO'LISH\n\n📌 ASOSIY\n• a × b = ko'paytma\n• a ÷ b = bo'linma, b ≠ 0\n• a × 1 = a\n• a × 0 = 0\n• a ÷ 1 = a\n• a ÷ a = 1, a ≠ 0\n\n📌 XOSSALAR\n• ab = ba\n• (ab)c = a(bc)\n• a(b + c) = ab + ac\n• a(b − c) = ab − ac\n\n📌 BO'LISHNI TEKSHIRISH\n• a = bq + r\n• 0 ≤ r < b\n\n⚠️ Nolga bo'lish mumkin emas!",
-    'percent': "📊 FOIZLAR\n\n📌 ASOSIY\n• p% = p / 100\n• Sonning p% i = Son × p / 100\n• A son B ning necha foizi: p = A / B × 100%\n• Butun son = qism × 100 / p\n\n📈 FOIZGA OSHIRISH\n• Yangi = Eski × (1 + p/100)\n\n📉 FOIZGA KAMAYTIRISH\n• Yangi = Eski × (1 − p/100)\n\n📌 O'ZGARISH FOIZI\n• O'zgarish % = (Yangi − Eski) / Eski × 100%\n\n📌 KETMA-KET FOIZ O'ZGARISHI\n• Yangi = Eski × (1 ± p₁/100) × (1 ± p₂/100)",
-    'fraction': "½ KASRLAR\n\n📌 ASOSIY\n• a/b — kasr, b ≠ 0\n• a — surat\n• b — maxraj\n\n➕ QO'SHISH\n• a/b + c/b = (a+c)/b\n• a/b + c/d = (ad+bc)/bd\n\n➖ AYIRISH\n• a/b − c/d = (ad−bc)/bd\n\n✖️ KO'PAYTIRISH\n• a/b × c/d = ac/bd\n\n➗ BO'LISH\n• a/b ÷ c/d = ad/bc\n\n📌 QISQARTIRISH\n• a/b = (a÷k)/(b÷k)\n\n📌 ARALASH SON\n• m a/b = (mb+a)/b",
-    'power': "x² DARAJALAR\n\n📌 ASOSIY\n• aⁿ = a × a × ... × a\n• a¹ = a\n• a⁰ = 1, a ≠ 0\n\n📌 XOSSALAR\n• aᵐ × aⁿ = aᵐ⁺ⁿ\n• aᵐ ÷ aⁿ = aᵐ⁻ⁿ, a ≠ 0\n• (aᵐ)ⁿ = aᵐⁿ\n• (ab)ⁿ = aⁿbⁿ\n• (a/b)ⁿ = aⁿ/bⁿ, b ≠ 0\n\n📌 MANFIY DARAJA\n• a⁻ⁿ = 1/aⁿ, a ≠ 0\n\n📌 KASR KO'RSATKICH\n• a^(1/n) = ⁿ√a\n• a^(m/n) = ⁿ√(aᵐ)",
-    'sqrt': "√ ILDIZLAR\n\n📌 ASOSIY\n• √a = x ⇔ x² = a, a ≥ 0\n• √(a²) = |a|\n\n📌 XOSSALAR\n• √(ab) = √a × √b\n• √(a/b) = √a / √b\n• ⁿ√(aⁿ) = a — n toq bo'lsa\n• ⁿ√(aⁿ) = |a| — n juft bo'lsa\n\n📌 SODDALASHTIRISH\n• √(a²b) = |a|√b\n• √12 = 2√3\n\n📌 MAXRAJNI IRRATSIONALLIKDAN QUTQARISH\n• 1/√a = √a/a, a > 0",
-    'linear_eq': "🔤 CHIZIQLI TENGLAMA\n\n📌 ASOSIY\n• ax + b = 0, a ≠ 0\n• x = −b/a\n\n📌 UMUMIY KO'RINISH\n• ax + b = cx + d\n• x = (d−b)/(a−c), a ≠ c\n\n📌 YECHISH TARTIBI\n1️⃣ Qavslarni ochish\n2️⃣ O'xshash hadlarni ixchamlash\n3️⃣ x li hadlarni bir tomonga o'tkazish\n4️⃣ Sonlarni boshqa tomonga o'tkazish\n5️⃣ x koeffitsientiga bo'lish",
-    'quad_eq': "🔤 KVADRAT TENGLAMA\n\n📌 UMUMIY KO'RINISH\n• ax² + bx + c = 0, a ≠ 0\n\n📌 DISKRIMINANT\n• D = b² − 4ac\n\n📌 ILDIZLAR\n• x₁ = (−b + √D)/(2a)\n• x₂ = (−b − √D)/(2a)\n\n📌 HOLATLAR\n• D > 0 → 2 ta haqiqiy ildiz\n• D = 0 → 1 ta haqiqiy ildiz\n• D < 0 → haqiqiy ildiz yo'q\n\n📌 VIETA\n• x₁ + x₂ = −b/a\n• x₁x₂ = c/a\n\n📌 QISQA KO'PAYTIRISH\n• (a+b)² = a²+2ab+b²\n• (a−b)² = a²−2ab+b²\n• a²−b² = (a−b)(a+b)",
-    'system_eq': "🔗 TENGLAMALAR SISTEMASI\n\n📌 2×2 SISTEMA\n• a₁x+b₁y=c₁\n• a₂x+b₂y=c₂\n\n📌 USULLAR\n• O'rniga qo'yish\n• Qo'shish/ayirish\n• Grafik usul\n\n📌 KRAMER QOIDASI\n• D = a₁b₂−a₂b₁\n• Dx = c₁b₂−c₂b₁\n• Dy = a₁c₂−a₂c₁\n• x = Dx/D\n• y = Dy/D\n• D ≠ 0",
-    'triangle': '🔺 UCHBURCHAK\n\n📌 PERIMETR\n• P = a+b+c\n\n📌 YUZA\n• S = ah/2\n• S = ab·sinC/2\n\n📌 GERON\n• p = (a+b+c)/2\n• S = √[p(p−a)(p−b)(p−c)]\n\n📌 PIFAGOR\n• a²+b²=c²\n• c=√(a²+b²)\n\n📌 BURCHAKLAR\n• A+B+C=180°\n\n📌 TENG TOMONLI\n• P=3a\n• h=a√3/2\n• S=a²√3/4\n\n📌 AYLANA BILAN\n• S=pr\n• S=abc/(4R)',
-    'rectangle': "▭ TO'RTBURCHAKLAR\n\n📌 TO'G'RI TO'RTBURCHAK\n• P=2(a+b)\n• S=ab\n• d=√(a²+b²)\n\n📌 KVADRAT\n• P=4a\n• S=a²\n• d=a√2\n\n📌 PARALLELOGRAMM\n• P=2(a+b)\n• S=ah\n• S=ab·sinα\n\n📌 ROMB\n• P=4a\n• S=ah\n• S=d₁d₂/2\n\n📌 TRAPETSIYA\n• S=(a+b)h/2\n• m=(a+b)/2\n• S=mh",
-    'circle': '⭕ AYLANA VA DOIRA\n\n📌 AYLANA UZUNLIGI\n• C=2πr\n• C=πd\n\n📌 DOIRA YUZASI\n• S=πr²\n\n📌 DIAMETR\n• d=2r\n• r=d/2\n\n📌 SEKTOR YUZASI\n• S=α/360° × πr²\n\n📌 YOY UZUNLIGI\n• l=α/360° × 2πr\n\n📌 AYLANA TENGLAMASI\n• (x−a)²+(y−b)²=r²\n• Markaz=(a,b)\n• Radius=r',
-    'ratio': "⚖️ NISBAT VA PROPORSIYA\n\n📌 NISBAT\n• a:b=a/b\n\n📌 PROPORSIYA\n• a/b=c/d\n• ad=bc\n\n📌 NOMALUM\n• x/b=c/d → x=bc/d\n\n📌 TO'G'RI PROPORSIYA\n• y=kx\n• y/x=k\n\n📌 TESKARI PROPORSIYA\n• y=k/x\n• xy=k\n\n📌 MASSHTAB\n• Masshtab = xaritadagi masofa / haqiqiy masofa",
-    'average': "📊 O'RTACHA QIYMAT\n\n📌 ARIFMETIK O'RTACHA\n• x̄=(x₁+x₂+...+xₙ)/n\n\n📌 YIG'INDI\n• S=x̄n\n\n📌 OG'IRLIKLI O'RTACHA\n• x̄=(x₁w₁+x₂w₂+...+xₙwₙ)/(w₁+w₂+...+wₙ)",
-    'negative': '➖ MANFIY SONLAR VA MODUL\n\n📌 MODUL\n• |a|=a, a≥0\n• |a|=−a, a<0\n• |−a|=|a|\n\n📌 ISHORALAR\n• (+)×(+) = +\n• (−)×(−) = +\n• (+)×(−) = −\n• (−)×(+) = −\n\n📌 MASOFA\n• |a−b| — a va b orasidagi masofa',
-    'speed': "🚗 TEZLIK — VAQT — MASOFA\n\n📌 ASOSIY\n• S=vt\n• v=S/t\n• t=S/v\n\n📌 O'RTACHA TEZLIK\n• vₒᵣₜ=umumiy masofa/umumiy vaqt\n\n📌 BIRLIKLAR\n• 1 m/s=3.6 km/soat\n• 1 km/soat=5/18 m/s",
-    'bank_percent': "🏦 BANK FOIZLARI\n\n📌 ODDIY FOIZ\n• I=Prt\n• A=P(1+rt)\n\n📌 MURAKKAB FOIZ\n• A=P(1+r/n)^(nt)\n\n📌 YILLIK BIR MARTALIK O'SISH\n• A=P(1+r)^t\n\nP — boshlang'ich summa\nr — foiz stavkasi o'nli ko'rinishda\nn — yiliga kapitalizatsiya soni\nt — vaqt\nA — yakuniy summa",
-    'trig': "📐 TRIGONOMETRIYA\n\n📌 ASOSIY\n• sinα=qarshi katet/gipotenuza\n• cosα=yondosh katet/gipotenuza\n• tanα=qarshi katet/yondosh katet\n• cotα=yondosh katet/qarshi katet\n\n📌 ASOSIY AYNİYATLAR\n• sin²α+cos²α=1\n• tanα=sinα/cosα\n• cotα=cosα/sinα\n• 1+tan²α=1/cos²α\n• 1+cot²α=1/sin²α\n\n📌 QO'SHISH\n• sin(α+β)=sinαcosβ+cosαsinβ\n• sin(α−β)=sinαcosβ−cosαsinβ\n• cos(α+β)=cosαcosβ−sinαsinβ\n• cos(α−β)=cosαcosβ+sinαsinβ\n\n📌 IKKI BURCHAK\n• sin2α=2sinαcosα\n• cos2α=cos²α−sin²α\n• cos2α=2cos²α−1\n• cos2α=1−2sin²α\n• tan2α=2tanα/(1−tan²α)\n\n📌 SINUSLAR TEOREMASI\n• a/sinA=b/sinB=c/sinC=2R\n\n📌 KOSINUSLAR TEOREMASI\n• c²=a²+b²−2ab cosC\n\n📌 MUHIM QIYMATLAR\n• sin30°=1/2\n• cos30°=√3/2\n• sin45°=cos45°=√2/2\n• sin60°=√3/2\n• cos60°=1/2\n• tan45°=1",
-    'log': "📈 LOGARIFMLAR\n\n📌 TA'RIF\n• logₐb=c ⇔ aᶜ=b\n• a>0, a≠1, b>0\n\n📌 ASOSIY\n• logₐ1=0\n• logₐa=1\n• logₐ(aˣ)=x\n• a^(logₐx)=x\n\n📌 KO'PAYTMA\n• logₐ(xy)=logₐx+logₐy\n\n📌 BO'LISH\n• logₐ(x/y)=logₐx−logₐy\n\n📌 DARAJA\n• logₐ(xⁿ)=n logₐx\n\n📌 ASOSNI ALMASHTIRISH\n• logₐb=log_cb/log_ca\n\n📌 NATURAL LOGARIFM\n• ln x=logₑx\n• e≈2.71828",
-    'expo_eq': "📶 KO'RSATKICHLI TENGLAMALAR\n\n📌 ASOSIY\n• aˣ=b\n• a>0, a≠1\n\n📌 BIR XIL ASOS\n• aᶠ⁽ˣ⁾=aᵍ⁽ˣ⁾ → f(x)=g(x)\n\n📌 DARAJA XOSSALARI\n• aˣaʸ=aˣ⁺ʸ\n• aˣ/aʸ=aˣ⁻ʸ\n• (aˣ)ʸ=aˣʸ\n\n📌 LOGARIFM ORQALI\n• aˣ=b → x=logₐb\n• eˣ=b → x=ln b",
-    'arith_prog': "🔢 ARIFMETIK PROGRESSIYA\n\n📌 TA'RIF\n• aₙ₊₁=aₙ+d\n• d — ayirma\n\n📌 n-HAD\n• aₙ=a₁+(n−1)d\n\n📌 AYIRMA\n• d=aₙ−aₙ₋₁\n\n📌 YIG'INDI\n• Sₙ=n(a₁+aₙ)/2\n• Sₙ=n[2a₁+(n−1)d]/2\n\n📌 O'RTA HAD\n• aₙ=(aₙ₋₁+aₙ₊₁)/2",
-    'geom_prog': "🔢 GEOMETRIK PROGRESSIYA\n\n📌 TA'RIF\n• bₙ₊₁=bₙq\n• q — maxraj\n\n📌 n-HAD\n• bₙ=b₁qⁿ⁻¹\n\n📌 YIG'INDI\n• Sₙ=b₁(qⁿ−1)/(q−1), q≠1\n• Sₙ=b₁(1−qⁿ)/(1−q)\n\n📌 CHEKSIZ KAMAYUVCHI\n• S∞=b₁/(1−q)\n• |q|<1\n\n📌 O'RTA HAD\n• bₙ²=bₙ₋₁×bₙ₊₁",
-    'combinatorics': "🎲 KOMBINATORIKA\n\n📌 FAKTORIAL\n• n!=1×2×3×...×n\n• 0!=1\n\n📌 O'RIN ALMASHTIRISH\n• Pₙ=n!\n\n📌 TAKRORLANMAYDIGAN JOYLASHTIRISH\n• Aₙᵏ=n!/(n−k)!\n\n📌 TAKRORLANMAYDIGAN KOMBINATSIYA\n• Cₙᵏ=n!/[k!(n−k)!]\n\n📌 XOSSALAR\n• Cₙ⁰=Cₙⁿ=1\n• Cₙᵏ=Cₙⁿ⁻ᵏ\n\n📌 KO'PAYTIRISH QOIDASI\n• m×n\n\n📌 QO'SHISH QOIDASI\n• m+n — bir-birini istisno qiluvchi holatlar uchun."
+    "add_sub": (
+        "вћ• QO'SHISH VA AYIRISH\n\n"
+        "вЂў a + b = qo'shindi (summa)\n"
+        "вЂў a в€’ b = ayirma\n"
+        "вЂў a + b = b + a (o'rin almashtirish qonuni)\n"
+        "вЂў (a + b) + c = a + (b + c) (guruhlash qonuni)\n"
+        "вЂў a в€’ b в‰  b в€’ a (ayirishda o'rin almashtirib bo'lmaydi)\n"
+        "вЂў a + 0 = a, a в€’ 0 = a\n"
+        "вЂў a в€’ a = 0\n\n"
+        "рџ“Њ Qoida: ko'p xonali sonlarni qo'shish/ayirishda raqamlarni o'ngdan chapga, "
+        "xona-xona (birlik, o'nlik, yuzlik...) tekislab yozing."
+    ),
+    "mul_div": (
+        "вњ–пёЏ KO'PAYTIRISH VA BO'LISH\n\n"
+        "вЂў a Г— b = ko'paytma\n"
+        "вЂў a Г· b = bo'linma (b в‰  0)\n"
+        "вЂў a Г— b = b Г— a (o'rin almashtirish qonuni)\n"
+        "вЂў (a Г— b) Г— c = a Г— (b Г— c) (guruhlash qonuni)\n"
+        "вЂў a Г— (b + c) = aГ—b + aГ—c (taqsimot qonuni)\n"
+        "вЂў a Г— 1 = a,  a Г— 0 = 0\n"
+        "вЂў a Г· 1 = a,  a Г· a = 1 (a в‰  0)\n"
+        "вЂў Bo'linma tekshiruvi: a = b Г— natija + qoldiq"
+    ),
+    "percent": (
+        "% FOIZLAR\n\n"
+        "вЂў Sonning n% i = son Г— n Г· 100\n"
+        "вЂў Foizni songa aylantirish: n% = n Г· 100\n"
+        "вЂў Narx n% ga oshsa: yangi narx = eski narx + eski narxГ—nГ·100 = eski narxГ—(1 + n/100)\n"
+        "вЂў Narx n% ga tushsa: yangi narx = eski narx в€’ eski narxГ—nГ·100 = eski narxГ—(1 в€’ n/100)\n"
+        "вЂў A soni B sonining necha foizini tashkil qiladi: (A Г· B) Г— 100%\n"
+        "вЂў Butun son = qism Г· (foiz Г· 100)"
+    ),
+    "fraction": (
+        "ВЅ KASRLAR\n\n"
+        "вЂў Sonning a/b qismi = son Г— a Г· b\n"
+        "вЂў Kasrlarni qo'shish (bir xil maxrajda): a/c + b/c = (a+b)/c\n"
+        "вЂў Kasrlarni ko'paytirish: (a/b) Г— (c/d) = (aГ—c)/(bГ—d)\n"
+        "вЂў Kasrlarni bo'lish: (a/b) Г· (c/d) = (a/b) Г— (d/c)\n"
+        "вЂў Aralash sonni kasrga aylantirish: a b/c = (aГ—c+b)/c\n"
+        "вЂў Qisqartirish: a/b = (aГ·k)/(bГ·k), k вЂ” umumiy bo'luvchi"
+    ),
+    "power": (
+        "xВІ DARAJALAR\n\n"
+        "вЂў aвЃї = a Г— a Г— ... Г— a (n marta)\n"
+        "вЂў aВ№ = a,  aвЃ° = 1 (a в‰  0)\n"
+        "вЂў aбµђ Г— aвЃї = aбµђвЃєвЃї\n"
+        "вЂў aбµђ Г· aвЃї = aбµђвЃ»вЃї\n"
+        "вЂў (aбµђ)вЃї = aбµђГ—вЃї\n"
+        "вЂў (aГ—b)вЃї = aвЃї Г— bвЃї\n"
+        "вЂў (a+b)ВІ = aВІ + 2ab + bВІ\n"
+        "вЂў (aв€’b)ВІ = aВІ в€’ 2ab + bВІ\n"
+        "вЂў aВІ в€’ bВІ = (aв€’b)(a+b)"
+    ),
+    "sqrt": (
+        "в€љ KVADRAT ILDIZ\n\n"
+        "вЂў в€љa = shunday b в‰Ґ 0 ki, b Г— b = a\n"
+        "вЂў в€љ(aГ—b) = в€љa Г— в€љb\n"
+        "вЂў в€љ(a/b) = в€љa Г· в€љb (b в‰  0)\n"
+        "вЂў (в€љa)ВІ = a (a в‰Ґ 0)\n"
+        "вЂў в€љaВІ = |a|\n"
+        "вЂў Muhim kvadratlar: 1,4,9,16,25,36,49,64,81,100,121,144,169,196,225,...\n"
+        "  ularning ildizlari mos ravishda: 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,..."
+    ),
+    "linear_eq": (
+        "рџ”¤ CHIZIQLI TENGLAMA\n\n"
+        "вЂў x + b = c  в†’  x = c в€’ b\n"
+        "вЂў ax = c  в†’  x = c Г· a (a в‰  0)\n"
+        "вЂў ax + b = c  в†’  x = (c в€’ b) Г· a\n"
+        "вЂў ax + b = cx + d  в†’  x = (d в€’ b) Г· (a в€’ c)\n"
+        "вЂў Tenglamaning ikkala tomoniga bir xil son qo'shish/ayirish yechimni o'zgartirmaydi\n"
+        "вЂў Tenglamaning ikkala tomonini bir xil (nolmas) songa ko'paytirish/bo'lish yechimni o'zgartirmaydi"
+    ),
+    "quad_eq": (
+        "рџ”¤ KVADRAT TENGLAMA\n\n"
+        "вЂў Umumiy ko'rinish: axВІ + bx + c = 0 (a в‰  0)\n"
+        "вЂў Diskriminant: D = bВІ в€’ 4ac\n"
+        "вЂў Ildizlar: x = (в€’b В± в€љD) Г· (2a)\n"
+        "вЂў D > 0 в†’ 2 ta ildiz, D = 0 в†’ 1 ta ildiz, D < 0 в†’ haqiqiy ildiz yo'q\n"
+        "вЂў Vieta teoremasi (xВІ + px + q = 0 uchun):\n"
+        "  x1 + x2 = в€’p\n"
+        "  x1 Г— x2 = q"
+    ),
+    "system_eq": (
+        "рџ”— TENGLAMALAR SISTEMASI\n\n"
+        "вЂў Umumiy ko'rinish: ax + by = c,  dx + ey = f\n"
+        "вЂў O'RNIGA QO'YISH USULI: bitta tenglamadan bitta o'zgaruvchini "
+        "ifodalang (masalan y = ...), so'ng ikkinchi tenglamaga qo'ying\n"
+        "вЂў QO'SHISH (ALGEBRAIK) USULI: tenglamalarni bir xil koeffitsientlar "
+        "hosil bo'ladigan songa ko'paytirib, qo'shish yoki ayirish orqali "
+        "bitta o'zgaruvchini yo'qotasiz\n"
+        "вЂў GRAFIK USULI: har ikkala tenglama chiziq sifatida chizilib, "
+        "kesishish nuqtasi yechim bo'ladi\n"
+        "вЂў Sistema yechimlari soni: agar to'g'ri chiziqlar kesishsa - 1 ta "
+        "yechim, parallel bo'lsa - yechim yo'q, ustma-ust tushsa - cheksiz "
+        "yechim"
+    ),
+    "triangle": (
+        "рџ”є UCHBURCHAK\n\n"
+        "вЂў Yuza = (asos Г— balandlik) Г· 2\n"
+        "вЂў Perimetr = a + b + c (barcha tomonlar yig'indisi)\n"
+        "вЂў Burchaklar yig'indisi = 180В°\n"
+        "вЂў Teng yonli uchburchakda 2 tomon va 2 burchak teng\n"
+        "вЂў Teng tomonli uchburchakda barcha tomon va burchaklar teng (har biri 60В°)\n"
+        "вЂў To'g'ri burchakli uchburchakda: Pifagor teoremasi вЂ” aВІ + bВІ = cВІ (c вЂ” gipotenuza)"
+    ),
+    "rectangle": (
+        "в–­ TO'RTBURCHAK (TO'G'RI TO'RTBURCHAK)\n\n"
+        "вЂў Yuza = a Г— b\n"
+        "вЂў Perimetr = 2 Г— (a + b)\n"
+        "вЂў Diagonal (Pifagor bo'yicha): d = в€љ(aВІ + bВІ)\n"
+        "вЂў Kvadrat uchun (a = b): Yuza = aВІ, Perimetr = 4a"
+    ),
+    "circle": (
+        "в­• DOIRA VA AYLANA\n\n"
+        "вЂў Doira yuzasi = ПЂ Г— rВІ\n"
+        "вЂў Aylana uzunligi (perimetri) = 2 Г— ПЂ Г— r = ПЂ Г— d\n"
+        "вЂў Diametr d = 2 Г— r\n"
+        "вЂў ПЂ в‰€ 3.14 yoki 22/7 (taqribiy)\n"
+        "вЂў Radius yuza orqali: r = в€љ(Yuza Г· ПЂ)"
+    ),
+    "ratio": (
+        "вљ–пёЏ NISBAT VA PROPORTSIYA\n\n"
+        "вЂў a : b = c : d  в†’  a Г— d = b Г— c (proportsiya asosiy xossasi)\n"
+        "вЂў Nisbatning ikkala tomonini bir xil songa ko'paytirish/bo'lish nisbatni o'zgartirmaydi\n"
+        "вЂў Sonni a:b nisbatda ulashish: kichik qism = son Г— a Г· (a+b), katta qism = son Г— b Г· (a+b)\n"
+        "вЂў To'g'ri proportsionallik: y = k Г— x\n"
+        "вЂў Teskari proportsionallik: y = k Г· x"
+    ),
+    "average": (
+        "рџ“Љ O'RTACHA QIYMAT\n\n"
+        "вЂў O'rtacha (arifmetik) = (barcha sonlar yig'indisi) Г· (sonlar soni)\n"
+        "вЂў Yig'indi = o'rtacha Г— sonlar soni\n"
+        "вЂў Agar bitta son ma'lum bo'lmasa: noma'lum son = (o'rtacha Г— soni) в€’ (ma'lum sonlar yig'indisi)"
+    ),
+    "negative": (
+        "вћ– MANFIY SONLAR\n\n"
+        "вЂў (в€’a) + (в€’b) = в€’(a+b)\n"
+        "вЂў (в€’a) в€’ b = в€’(a+b)\n"
+        "вЂў a в€’ (в€’b) = a + b\n"
+        "вЂў (в€’a) + b = b в€’ a\n"
+        "вЂў (в€’a) Г— (в€’b) = a Г— b (manfiy Г— manfiy = musbat)\n"
+        "вЂў (в€’a) Г— b = в€’(aГ—b) (manfiy Г— musbat = manfiy)\n"
+        "вЂў (в€’a) Г· (в€’b) = a Г· b\n"
+        "вЂў (в€’a) Г· b = в€’(aГ·b)"
+    ),
+    "speed": (
+        "рџљ— TEZLIK-VAQT-MASOFA\n\n"
+        "вЂў Masofa (S) = Tezlik (V) Г— Vaqt (T)\n"
+        "вЂў Tezlik (V) = Masofa (S) Г· Vaqt (T)\n"
+        "вЂў Vaqt (T) = Masofa (S) Г· Tezlik (V)\n"
+        "вЂў Qarama-qarshi harakatda: yaqinlashish tezligi = V1 + V2\n"
+        "вЂў Bir yo'nalishda quvib o'tishda: V(farq) = V1 в€’ V2"
+    ),
+    "bank_percent": (
+        "рџЏ¦ FOIZ O'SISHI (BANK DEPOZITI)\n\n"
+        "вЂў Foiz summasi = Depozit Г— Foiz stavkasi Г· 100\n"
+        "вЂў 1 yildan keyingi umumiy summa = Depozit + Foiz summasi = Depozit Г— (1 + stavka/100)\n"
+        "вЂў Oddiy foiz (n yil): Summa = Depozit Г— (1 + nГ—stavka/100)\n"
+        "вЂў Murakkab foiz (n yil): Summa = Depozit Г— (1 + stavka/100)вЃї"
+    ),
+    "trig": (
+        "рџ“ђ TRIGONOMETRIYA\n\n"
+        "Asosiy burchaklar jadvali:\n"
+        "вЂў sin: 0В°в†’0, 30В°в†’0.5, 45В°в†’в€љ2/2, 60В°в†’в€љ3/2, 90В°в†’1\n"
+        "вЂў cos: 0В°в†’1, 30В°в†’в€љ3/2, 45В°в†’в€љ2/2, 60В°в†’0.5, 90В°в†’0\n"
+        "вЂў tan: 0В°в†’0, 45В°в†’1, 90В°в†’aniqlanmagan\n\n"
+        "вЂў sinВІО± + cosВІО± = 1 (asosiy trigonometrik ayniyat)\n"
+        "вЂў tan О± = sin О± Г· cos О±"
+    ),
+    "log": (
+        "рџ“€ LOGARIFM\n\n"
+        "вЂў log_a(b) = c  вџє  a^c = b  (a > 0, a в‰  1, b > 0)\n"
+        "вЂў log_a(1) = 0\n"
+        "вЂў log_a(a) = 1\n"
+        "вЂў log_a(xГ—y) = log_a(x) + log_a(y)\n"
+        "вЂў log_a(xГ·y) = log_a(x) в€’ log_a(y)\n"
+        "вЂў log_a(xвЃї) = n Г— log_a(x)"
+    ),
+    "expo_eq": (
+        "рџ“¶ KO'RSATKICHLI TENGLAMA\n\n"
+        "вЂў Umumiy g'oya: a^x = a^n  вџє  x = n  (a > 0, a в‰  1)\n"
+        "вЂў a^x Г— a^y = a^(x+y)\n"
+        "вЂў a^x Г· a^y = a^(xв€’y)\n"
+        "вЂў (a^x)^y = a^(xГ—y)\n"
+        "вЂў Ikkala tomonni BIR XIL ASOSGA keltirib, so'ng darajalarni tenglashtiring\n"
+        "вЂў Masalan: 8^x = 2^9 в†’ (2Ві)^x = 2^9 в†’ 2^(3x) = 2^9 в†’ 3x = 9 в†’ x = 3"
+    ),
+    "arith_prog": (
+        "рџ”ў ARIFMETIK PROGRESSIYA\n\n"
+        "вЂў n-had: a_n = a1 + (nв€’1) Г— d\n"
+        "вЂў Ayirma: d = a_(n+1) в€’ a_n\n"
+        "вЂў Yig'indi: S_n = n Г— (2Г—a1 + (nв€’1)Г—d) Г· 2\n"
+        "вЂў Yig'indi (boshqa ko'rinish): S_n = n Г— (a1 + a_n) Г· 2"
+    ),
+    "geom_prog": (
+        "рџ”ў GEOMETRIK PROGRESSIYA\n\n"
+        "вЂў n-had: a_n = a1 Г— q^(nв€’1)\n"
+        "вЂў Maxraj: q = a_(n+1) Г· a_n\n"
+        "вЂў Yig'indi (q в‰  1): S_n = a1 Г— (qвЃї в€’ 1) Г· (q в€’ 1)\n"
+        "вЂў Cheksiz kamayuvchi progressiya yig'indisi (|q| < 1): S = a1 Г· (1 в€’ q)"
+    ),
+    "combinatorics": (
+        "рџЋІ KOMBINATORIKA\n\n"
+        "вЂў Faktorial: n! = 1 Г— 2 Г— 3 Г— ... Г— n  (0! = 1)\n"
+        "вЂў Ko'paytirish qoidasi: agar 1-tanlov m xil, 2-tanlov n xil usulda "
+        "bo'lsa, ikkalasi birga mГ—n xil usulda bajariladi\n"
+        "вЂў O'rin almashtirish (permutatsiya): P_n = n!\n"
+        "вЂў Joylashtirish (tartib MUHIM): A_n^k = n! Г· (nв€’k)!\n"
+        "вЂў Kombinatsiya (tartib MUHIM EMAS): C_n^k = n! Г· (k! Г— (nв€’k)!)"
+    ),
 }
+
 MOTIVATIONS = [
-    "✅ To'g'ri! Zo'r ishladingiz!",
-    "✅ To'g'ri! Ajoyib!",
-    "✅ To'g'ri! Siz iqtidorlisiz!",
-    "✅ To'g'ri! Davom eting!",
-    "✅ To'g'ri! Zo'r natija!",
-    "✅ To'g'ri! Mukammal!",
-    "✅ To'g'ri! Shunday davom eting!",
+    "вњ… To'g'ri! Zo'r ishladingiz!",
+    "вњ… To'g'ri! Ajoyib!",
+    "вњ… To'g'ri! Siz iqtidorlisiz!",
+    "вњ… To'g'ri! Davom eting!",
+    "вњ… To'g'ri! Zo'r natija!",
+    "вњ… To'g'ri! Mukammal!",
+    "вњ… To'g'ri! Shunday davom eting!",
 ]
 
 NAMES_POOL = ["Ahmad", "Vali", "Aziza", "Dilnoza", "Sardor", "Malika", "Jasur", "Nodira", "Bekzod", "Kamola"]
@@ -807,7 +767,7 @@ def ex_add_sub_plain(grade):
     op = random.choice(["+", "-"])
     if op == "-":
         a, b = sorted([random.randint(lo, hi), random.randint(lo, hi)], reverse=True)
-        return f"{a} − {b}", a - b
+        return f"{a} в€’ {b}", a - b
     a, b = random.randint(lo, hi), random.randint(lo, hi)
     return f"{a} + {b}", a + b
 
@@ -900,8 +860,8 @@ def ex_mul_div_plain(grade):
     a, b = random.randint(lo, hi), random.randint(2, 12)
     op = random.choice(["*", "/"])
     if op == "*":
-        return f"{a} × {b}", a * b
-    return f"{a*b} ÷ {b}", a
+        return f"{a} Г— {b}", a * b
+    return f"{a*b} Г· {b}", a
 
 
 def ex_mul_div_boxes(grade):
@@ -930,7 +890,7 @@ def ex_mul_div_combo(grade):
     lo, hi = _rng(grade, (2, 6), (5, 15), (10, 25))
     a = random.randint(lo, hi) * c
     b = random.randint(2, 12)
-    return f"({a} × {b}) ÷ {c}", (a * b) // c
+    return f"({a} Г— {b}) Г· {c}", (a * b) // c
 
 
 def ex_mul_div_order_ops(grade):
@@ -952,16 +912,16 @@ def ex_mul_div_order_ops(grade):
         result = mul1 - mul2
     else:
         result = mul1 + mul2
-    return f"{a} × {b} {op_mid} {c} × {d} = ? (amallar tartibiga rioya qiling)", result
+    return f"{a} Г— {b} {op_mid} {c} Г— {d} = ? (amallar tartibiga rioya qiling)", result
 
 
 def ex_mul_div_distributive(grade):
-    # Taqsimot qonuni: a × (b + c) = a×b + a×c
+    # Taqsimot qonuni: a Г— (b + c) = aГ—b + aГ—c
     lo_a, hi_a = _rng(grade, None, (3, 15), (5, 30))
     a = random.randint(lo_a, hi_a)
     b = random.randint(2, 20)
     c = random.randint(2, 20)
-    return f"Taqsimot qonunidan foydalanib hisoblang: {a} × ({b} + {c}) = ?", a * (b + c)
+    return f"Taqsimot qonunidan foydalanib hisoblang: {a} Г— ({b} + {c}) = ?", a * (b + c)
 
 
 def ex_mul_div_two_step(grade):
@@ -1165,13 +1125,13 @@ GEN_FRACTION = [
 def ex_power_square(grade):
     lo, hi = _rng(grade, (2, 10), (11, 25), (20, 40))
     a = random.randint(lo, hi)
-    return f"{a}² = ?", a * a
+    return f"{a}ВІ = ?", a * a
 
 
 def ex_power_cube(grade):
     lo, hi = _rng(grade, (2, 6), (5, 12), (8, 15))
     a = random.randint(lo, hi)
-    return f"{a}³ = ?", a ** 3
+    return f"{a}Ві = ?", a ** 3
 
 
 def ex_power_sum_then_power(grade):
@@ -1183,23 +1143,23 @@ def ex_power_sum_then_power(grade):
 def ex_power_diff_then_square(grade):
     a = random.randint(5, 20)
     b = random.randint(1, a - 1)
-    return f"({a}−{b})² = ?", (a - b) ** 2
+    return f"({a}в€’{b})ВІ = ?", (a - b) ** 2
 
 
 def ex_power_law_mul(grade):
-    # aᵐ × aⁿ = aᵐ⁺ⁿ - daraja qonuni (8-9 sinf algebra dasturi)
+    # aбµђ Г— aвЃї = aбµђвЃєвЃї - daraja qonuni (8-9 sinf algebra dasturi)
     base = random.randint(2, 5)
     m = random.randint(1, 4)
     n = random.randint(1, 4)
-    return f"{base}^{m} × {base}^{n} ni {base} ning bitta darajasi ko'rinishida yozsangiz, daraja ko'rsatkichi nechaga teng?", m + n
+    return f"{base}^{m} Г— {base}^{n} ni {base} ning bitta darajasi ko'rinishida yozsangiz, daraja ko'rsatkichi nechaga teng?", m + n
 
 
 def ex_power_law_div(grade):
-    # aᵐ ÷ aⁿ = aᵐ⁻ⁿ (m > n bo'lishi shart)
+    # aбµђ Г· aвЃї = aбµђвЃ»вЃї (m > n bo'lishi shart)
     base = random.randint(2, 5)
     n = random.randint(1, 4)
     m = random.randint(n + 1, n + 5)
-    return f"{base}^{m} ÷ {base}^{n} ni {base} ning bitta darajasi ko'rinishida yozsangiz, daraja ko'rsatkichi nechaga teng?", m - n
+    return f"{base}^{m} Г· {base}^{n} ni {base} ning bitta darajasi ko'rinishida yozsangiz, daraja ko'rsatkichi nechaga teng?", m - n
 
 
 def ex_power_law_value(grade):
@@ -1207,7 +1167,7 @@ def ex_power_law_value(grade):
     base = random.choice([2, 3])
     m = random.randint(1, 3)
     n = random.randint(1, 3)
-    return f"{base}^{m} × {base}^{n} necha songa teng? (avval daraja qonunini qo'llang)", base ** (m + n)
+    return f"{base}^{m} Г— {base}^{n} necha songa teng? (avval daraja qonunini qo'llang)", base ** (m + n)
 
 
 GEN_POWER = [
@@ -1231,13 +1191,13 @@ PERFECT_SQUARES_ALL = [n * n for n in range(2, 26)]
 def ex_sqrt_direct(grade):
     pool = _rng(grade, PERFECT_SQUARES_EASY, PERFECT_SQUARES_ALL[:20], PERFECT_SQUARES_ALL)
     a = random.choice(pool)
-    return f"√{a} = ?", int(math.sqrt(a))
+    return f"в€љ{a} = ?", int(math.sqrt(a))
 
 
 def ex_sqrt_from_square(grade):
     lo, hi = _rng(grade, (5, 12), (13, 22), (18, 30))
     base = random.randint(lo, hi)
-    return f"√{base*base} = ?", base
+    return f"в€љ{base*base} = ?", base
 
 
 def ex_sqrt_area_to_side(grade):
@@ -1250,7 +1210,7 @@ def ex_sqrt_area_to_side(grade):
 def ex_sqrt_product(grade):
     lo, hi = _rng(grade, (2, 6), (4, 12), (8, 18))
     a, b = random.randint(lo, hi), random.randint(lo, hi)
-    return f"√{a*a} × √{b*b} nechaga teng?", a * b
+    return f"в€љ{a*a} Г— в€љ{b*b} nechaga teng?", a * b
 
 
 def ex_sqrt_estimate(grade):
@@ -1259,16 +1219,16 @@ def ex_sqrt_estimate(grade):
     n = random.randint(4, 29)
     low_root = n
     n_squared_area = random.randint(low_root * low_root + 1, (low_root + 1) * (low_root + 1) - 1)
-    return f"√{n_squared_area} soni qaysi ikkita ketma-ket butun son orasida joylashgan? Kichigini yozing.", low_root
+    return f"в€љ{n_squared_area} soni qaysi ikkita ketma-ket butun son orasida joylashgan? Kichigini yozing.", low_root
 
 
 def ex_sqrt_simplify(grade):
-    # √(a²×b) = a√b ko'rinishida soddalashtirish (b - kvadratsiz son) -
+    # в€љ(aВІГ—b) = aв€љb ko'rinishida soddalashtirish (b - kvadratsiz son) -
     # 10-11 sinf uchun kuchliroq ildiz bilan ishlash ko'nikmasi
     a = random.randint(2, 10)
     b = random.choice([2, 3, 5, 6, 7, 10, 11, 13, 14, 15])
     n = a * a * b
-    return f"√{n} sonini a√{b} ko'rinishida soddalashtiring. a nechaga teng?", a
+    return f"в€љ{n} sonini aв€љ{b} ko'rinishida soddalashtiring. a nechaga teng?", a
 
 
 GEN_SQRT = [
@@ -1317,7 +1277,7 @@ def ex_linear_minus(grade):
     a = random.randint(3, 12)
     b = random.randint(1, 30)
     c = a * x - b
-    return f"{a}x − {b} = {c}, x = ?", x
+    return f"{a}x в€’ {b} = {c}, x = ?", x
 
 
 def ex_linear_parentheses(grade):
@@ -1375,14 +1335,14 @@ GEN_LINEAR_EQ = [
 def ex_quad_pure(grade):
     lo, hi = _rng(grade, (2, 12), (5, 18), (10, 25))
     x = random.randint(lo, hi)
-    return f"x² = {x*x} (x > 0), x = ?", x
+    return f"xВІ = {x*x} (x > 0), x = ?", x
 
 
 def _quad_text(r1, r2):
     b, c = -(r1 + r2), r1 * r2
     sign_b = f"+ {b}x" if b >= 0 else f"- {abs(b)}x"
     sign_c = f"+ {c}" if c >= 0 else f"- {abs(c)}"
-    return f"x² {sign_b} {sign_c} = 0", b, c
+    return f"xВІ {sign_b} {sign_c} = 0", b, c
 
 
 def ex_quad_sum(grade):
@@ -1406,7 +1366,7 @@ def ex_quad_largest(grade):
 
 
 def ex_quad_discriminant(grade):
-    # Diskriminantni hisoblash - D = b² - 4ac (8-9 sinf uchun asosiy ko'nikma)
+    # Diskriminantni hisoblash - D = bВІ - 4ac (8-9 sinf uchun asosiy ko'nikma)
     a = random.randint(1, 3)
     r1, r2 = random.randint(1, 10), random.randint(1, 10)
     b = -a * (r1 + r2)
@@ -1414,15 +1374,15 @@ def ex_quad_discriminant(grade):
     d = b * b - 4 * a * c
     sign_b = f"+ {b}x" if b >= 0 else f"- {abs(b)}x"
     sign_c = f"+ {c}" if c >= 0 else f"- {abs(c)}"
-    coef_a = f"{a}x²" if a != 1 else "x²"
-    return f"{coef_a} {sign_b} {sign_c} = 0 tenglamaning diskriminanti (D = b² − 4ac) nechaga teng?", d
+    coef_a = f"{a}xВІ" if a != 1 else "xВІ"
+    return f"{coef_a} {sign_b} {sign_c} = 0 tenglamaning diskriminanti (D = bВІ в€’ 4ac) nechaga teng?", d
 
 
 def ex_quad_sum_of_squares(grade):
-    # x1² + x2² = (x1+x2)² - 2*x1*x2 ayniyati (kuchliroq, hard darajaga mos)
+    # x1ВІ + x2ВІ = (x1+x2)ВІ - 2*x1*x2 ayniyati (kuchliroq, hard darajaga mos)
     r1, r2 = random.randint(1, 10), random.randint(1, 10)
     eq, b, c = _quad_text(r1, r2)
-    return f"{eq} tenglama ildizlari x1 va x2 bo'lsa, x1² + x2² nechaga teng?", r1 * r1 + r2 * r2
+    return f"{eq} tenglama ildizlari x1 va x2 bo'lsa, x1ВІ + x2ВІ nechaga teng?", r1 * r1 + r2 * r2
 
 
 GEN_QUAD_EQ = [
@@ -1620,12 +1580,12 @@ def _circle_radius(grade):
 
 def ex_circle_area(grade):
     r = _circle_radius(grade)
-    return f"Radiusi {r} bo'lgan doira yuzasi (π=22/7 deb oling)?", int(22 * r * r / 7)
+    return f"Radiusi {r} bo'lgan doira yuzasi (ПЂ=22/7 deb oling)?", int(22 * r * r / 7)
 
 
 def ex_circle_circumference(grade):
     r = _circle_radius(grade)
-    return f"Radiusi {r} bo'lgan doiraning aylana uzunligi (π=22/7 deb oling)?", int(2 * 22 * r / 7)
+    return f"Radiusi {r} bo'lgan doiraning aylana uzunligi (ПЂ=22/7 deb oling)?", int(2 * 22 * r / 7)
 
 
 def ex_circle_radius_from_diameter(grade):
@@ -1642,13 +1602,13 @@ def ex_circle_diameter_from_radius(grade):
 def ex_circle_radius_from_area(grade):
     r = _circle_radius(grade)
     area = int(22 * r * r / 7)
-    return f"Yuzasi {area} bo'lgan doiraning radiusi nechaga teng? (π=22/7 deb oling)", r
+    return f"Yuzasi {area} bo'lgan doiraning radiusi nechaga teng? (ПЂ=22/7 deb oling)", r
 
 
 def ex_circle_radius_from_circumference(grade):
     r = _circle_radius(grade)
     circ = int(2 * 22 * r / 7)
-    return f"Aylana uzunligi {circ} bo'lgan doiraning radiusi nechaga teng? (π=22/7 deb oling)", r
+    return f"Aylana uzunligi {circ} bo'lgan doiraning radiusi nechaga teng? (ПЂ=22/7 deb oling)", r
 
 
 GEN_CIRCLE = [
@@ -1784,7 +1744,7 @@ def ex_negative_mul(grade):
     a, b = random.randint(lo, hi), random.randint(2, 12)
     if random.random() < 0.5:
         b = -b
-    return f"({a}) × ({b})" if b < 0 else f"({a}) × {b}", a * b
+    return f"({a}) Г— ({b})" if b < 0 else f"({a}) Г— {b}", a * b
 
 
 def ex_negative_both(grade):
@@ -1799,7 +1759,7 @@ def ex_negative_temperature(grade):
     delta = random.randint(1, 20)
     op = random.choice(["ko'tarildi", "pasaydi"])
     result = start + delta if op == "ko'tarildi" else start - delta
-    return f"Havo harorati {start}°C edi. Kechqurun {delta}° ga {op}. Hozir harorat necha daraja?", result
+    return f"Havo harorati {start}В°C edi. Kechqurun {delta}В° ga {op}. Hozir harorat necha daraja?", result
 
 
 def ex_negative_chain(grade):
@@ -1827,7 +1787,7 @@ def ex_negative_mul_chain(grade):
         val = sign * random.randint(1, 6)
         factors.append(val)
         result *= val
-    text = " × ".join(f"({f})" if f < 0 else str(f) for f in factors)
+    text = " Г— ".join(f"({f})" if f < 0 else str(f) for f in factors)
     return f"{text} = ?", result
 
 
@@ -1966,15 +1926,15 @@ GEN_BANK_PERCENT = [
 # ---------- trig ----------
 # ============================================================
 TRIG_PERCENT_FACTS = [
-    ("sin(0°)", 0), ("cos(90°)", 0),
-    ("sin(30°)", 50), ("cos(60°)", 50),
-    ("sin(90°)", 100), ("cos(0°)", 100),
+    ("sin(0В°)", 0), ("cos(90В°)", 0),
+    ("sin(30В°)", 50), ("cos(60В°)", 50),
+    ("sin(90В°)", 100), ("cos(0В°)", 100),
 ]
 
 TRIG_QUESTION_TEMPLATES = [
-    "{q} ning qiymati necha foizga teng? (sin(90°) = 100% deb hisoblang)",
-    "{q} nechaga teng, foiz ko'rinishida ayting? (masalan cos(0°) = 100%)",
-    "Agar sin(90°) = 100% desak, {q} necha foizga teng bo'ladi?",
+    "{q} ning qiymati necha foizga teng? (sin(90В°) = 100% deb hisoblang)",
+    "{q} nechaga teng, foiz ko'rinishida ayting? (masalan cos(0В°) = 100%)",
+    "Agar sin(90В°) = 100% desak, {q} necha foizga teng bo'ladi?",
 ]
 
 
@@ -1988,8 +1948,8 @@ def ex_trig_identity(grade):
     known = random.choice(["sin", "cos"])
     other = "cos" if known == "sin" else "sin"
     return (
-        f"sin²α + cos²α = 1 ayniyatiga ko'ra, agar {known}²α = 0 bo'lsa, "
-        f"{other}²α nechaga teng?",
+        f"sinВІО± + cosВІО± = 1 ayniyatiga ko'ra, agar {known}ВІО± = 0 bo'lsa, "
+        f"{other}ВІО± nechaga teng?",
         1,
     )
 
@@ -1997,7 +1957,7 @@ def ex_trig_identity(grade):
 def ex_trig_tan(grade):
     angle = random.choice([0, 45])
     ans = 0 if angle == 0 else 1
-    return f"tan({angle}°) qiymatini toping. (0 yoki 1)", ans
+    return f"tan({angle}В°) qiymatini toping. (0 yoki 1)", ans
 
 
 def ex_trig_pythagorean(grade):
@@ -2014,11 +1974,11 @@ def ex_trig_pythagorean(grade):
 
 
 def ex_trig_sum_angles(grade):
-    # Uchburchak burchaklari yig'indisi 180° - trigonometriyaga tayyorgarlik
+    # Uchburchak burchaklari yig'indisi 180В° - trigonometriyaga tayyorgarlik
     a1 = random.randint(20, 90)
     a2 = random.randint(20, 150 - a1)  # a1+a2 <= 150 bo'lgani uchun a3 >= 30 (har doim musbat)
     a3 = 180 - a1 - a2
-    return f"Uchburchak burchaklaridan ikkitasi {a1}° va {a2}°. Uchinchi burchak nechaga teng?", a3
+    return f"Uchburchak burchaklaridan ikkitasi {a1}В° va {a2}В°. Uchinchi burchak nechaga teng?", a3
 
 
 TRIG_EQUATION_FACTS = [
@@ -2032,7 +1992,7 @@ def ex_trig_equation(grade):
     # Oddiy trigonometrik tenglamani yechish (10-11 sinf) - qiymatlar foiz
     # ko'rinishida berilgani uchun natija ANIQ va butun son bo'ladi
     func, pct, angle = random.choice(TRIG_EQUATION_FACTS)
-    return f"{func}(x°) = {pct}% tenglamani yeching (0° ≤ x ≤ 90°, sin(90°)=100% deb hisoblang). x = ?", angle
+    return f"{func}(xВ°) = {pct}% tenglamani yeching (0В° в‰¤ x в‰¤ 90В°, sin(90В°)=100% deb hisoblang). x = ?", angle
 
 
 GEN_TRIG = [
@@ -2141,7 +2101,7 @@ def ex_expo_product_rule(grade):
     k = random.randint(1, 4)
     x = random.randint(1, 6)
     n = x + k
-    return f"{base}^x × {base}^{k} = {base**n} tenglamani yeching. x = ?", x
+    return f"{base}^x Г— {base}^{k} = {base**n} tenglamani yeching. x = ?", x
 
 
 def ex_expo_divide_rule(grade):
@@ -2150,7 +2110,7 @@ def ex_expo_divide_rule(grade):
     k = random.randint(1, 4)
     n = random.randint(1, 5)
     x = n + k
-    return f"{base}^x ÷ {base}^{k} = {base**n} tenglamani yeching. x = ?", x
+    return f"{base}^x Г· {base}^{k} = {base**n} tenglamani yeching. x = ?", x
 
 
 GEN_EXPO_EQ = [
@@ -2237,9 +2197,9 @@ def ex_geom_find_n(grade):
 
 
 def ex_geom_infinite_sum(grade):
-    # Cheksiz kamayuvchi geometrik progressiya yig'indisi: S = a1 ÷ (1 − q), |q| < 1.
-    # Natija butun son chiqishi uchun q = 1/k va a1 = m×(k−1) qilib tanlanadi:
-    # S = a1 ÷ (1 − 1/k) = a1×k ÷ (k−1) = m×(k−1)×k ÷ (k−1) = m×k
+    # Cheksiz kamayuvchi geometrik progressiya yig'indisi: S = a1 Г· (1 в€’ q), |q| < 1.
+    # Natija butun son chiqishi uchun q = 1/k va a1 = mГ—(kв€’1) qilib tanlanadi:
+    # S = a1 Г· (1 в€’ 1/k) = a1Г—k Г· (kв€’1) = mГ—(kв€’1)Г—k Г· (kв€’1) = mГ—k
     k = random.randint(2, 6)
     m = random.randint(1, 8)
     a1 = m * (k - 1)
@@ -2321,6 +2281,547 @@ GEN_COMBINATORICS = [
 ]
 
 
+# ==================== 5-SINF YANGI GENERATORLARI ====================
+# Eski 5-7 sinf generatorlari ishlatilmaydi. 5-sinf uchun alohida,
+# mazmuni turlicha va javobi butun son bo'ladigan generatorlar shu yerda.
+# Har bir funksiya (savol_matni, javob) qaytaradi.
+
+
+def _fifth_avg_numbers(count=3, lo=10, hi=60):
+    avg = random.randint(lo, hi)
+    # Yig'indisi aynan count * avg bo'ladigan sonlar tuziladi.
+    nums = [avg] * count
+    for _ in range(40):
+        nums = [random.randint(max(1, lo), hi) for _ in range(count - 1)]
+        last = count * avg - sum(nums)
+        if max(1, lo) <= last <= hi:
+            nums.append(last)
+            random.shuffle(nums)
+            return nums
+    return [avg] * count
+
+
+# ---------- 5-sinf qo'shish/ayirish ----------
+def f5_add_sub_direct(grade):
+    a = random.randint(120, 4500)
+    b = random.randint(120, 2800)
+    c = random.randint(50, 1600)
+    if random.choice([True, False]):
+        return f"{a} + {b} в€’ {c} = ?", a + b - c
+    total = a + b
+    return f"{total} в€’ {a} в€’ {c} = ?", total - a - c
+
+
+def f5_add_sub_missing(grade):
+    x = random.randint(50, 900)
+    known = random.randint(20, x - 1)
+    total = x + known
+    return f"в–Ў + {known} = {total}. в–Ў o'rniga qaysi son keladi?", x
+
+
+def f5_add_sub_difference(grade):
+    a = random.randint(250, 5000)
+    b = random.randint(80, a - 1)
+    return f"Kutubxonada {a} ta kitob bor. Shundan {b} tasi badiiy kitob. Qolgan kitoblar soni nechta?", a - b
+
+
+def f5_add_sub_shopping(grade):
+    p1 = random.randint(2, 15) * 1000
+    p2 = random.randint(2, 12) * 1000
+    p3 = random.randint(1, 8) * 1000
+    paid = ((p1 + p2 + p3) // 10000 + 2) * 10000
+    return (f"Do'konda daftar {p1} so'm, qalam {p2} so'm va kitob {p3} so'm turadi. "
+            f"{paid} so'm berilsa, qancha qaytim olinadi?"), paid - (p1 + p2 + p3)
+
+
+def f5_add_sub_two_step(grade):
+    start = random.randint(80, 500)
+    added = random.randint(30, 250)
+    used = random.randint(20, added + 30)
+    result = start + added - used
+    return (f"Omborda {start} kg guruch bor edi. Yana {added} kg keltirildi, "
+            f"so'ng {used} kg sotildi. Omborda necha kg qoldi?"), result
+
+
+def f5_add_sub_compare(grade):
+    a = random.randint(200, 3000)
+    diff = random.randint(20, min(500, a - 1))
+    b = a - diff
+    return f"{a} va {b} sonlarining ayirmasi nechaga teng?", diff
+
+
+GEN_F5_ADD_SUB = [
+    (f5_add_sub_direct, {"easy"}),
+    (f5_add_sub_missing, {"easy"}),
+    (f5_add_sub_difference, {"easy"}),
+    (f5_add_sub_shopping, {"easy"}),
+    (f5_add_sub_two_step, {"easy"}),
+    (f5_add_sub_compare, {"easy"}),
+    (ex_add_sub_plain, EM_TIERS),
+    (ex_add_sub_balance, MH_TIERS),
+    (ex_add_sub_missing_term, MH_TIERS),
+]
+
+
+# ---------- 5-sinf ko'paytirish/bo'lish ----------
+def f5_mul_div_direct(grade):
+    a = random.randint(12, 180)
+    b = random.randint(2, 12)
+    if random.choice([True, False]):
+        return f"{a} Г— {b} = ?", a * b
+    total = a * b
+    return f"{total} Г· {b} = ?", a
+
+
+def f5_mul_div_boxes(grade):
+    boxes = random.randint(4, 18)
+    each = random.randint(6, 35)
+    return f"{boxes} ta qutining har birida {each} tadan qalam bor. Jami nechta qalam bor?", boxes * each
+
+
+def f5_mul_div_share(grade):
+    groups = random.randint(3, 12)
+    each = random.randint(5, 30)
+    total = groups * each
+    item = random.choice(["daftar", "qalam", "olma", "kitob", "konfet"])
+    return f"{total} ta {item} {groups} ta o'quvchiga teng taqsimlandi. Har biriga nechtadan tegadi?", each
+
+
+def f5_mul_div_price(grade):
+    price = random.randint(3, 25) * 1000
+    count = random.randint(2, 12)
+    return f"1 ta daftar {price} so'm. {count} ta daftar uchun qancha pul kerak?", price * count
+
+
+def f5_mul_div_remainder(grade):
+    divisor = random.randint(3, 9)
+    quotient = random.randint(5, 30)
+    remainder = random.randint(1, divisor - 1)
+    dividend = divisor * quotient + remainder
+    return f"{dividend} ni {divisor} ga bo'lganda qoldiq nechaga teng?", remainder
+
+
+def f5_mul_div_order(grade):
+    a = random.randint(2, 12)
+    b = random.randint(2, 10)
+    c = random.randint(2, 20)
+    result = a * b + c
+    return f"{a} Г— {b} + {c} = ? (avval ko'paytirish bajariladi)", result
+
+
+GEN_F5_MUL_DIV = [
+    (f5_mul_div_direct, {"easy"}),
+    (f5_mul_div_boxes, {"easy"}),
+    (f5_mul_div_share, {"easy"}),
+    (f5_mul_div_price, {"easy"}),
+    (f5_mul_div_remainder, {"easy"}),
+    (f5_mul_div_order, {"easy"}),
+    (ex_mul_div_plain, EM_TIERS),
+    (ex_mul_div_price, ALL_TIERS),
+    (ex_mul_div_order_ops, MH_TIERS),
+    (ex_mul_div_distributive, MH_TIERS),
+    (ex_mul_div_two_step, H_ONLY),
+]
+
+
+# ---------- 5-sinf kasrlar ----------
+def f5_fraction_part(grade):
+    den = random.choice([2, 3, 4, 5, 10])
+    num = random.randint(1, den - 1)
+    whole = den * random.randint(3, 30)
+    return f"{whole} sonining {num}/{den} qismi nechaga teng?", whole * num // den
+
+
+def f5_fraction_remaining(grade):
+    den = random.choice([2, 3, 4, 5, 10])
+    used_num = random.randint(1, den - 1)
+    total = den * random.randint(3, 25)
+    used = total * used_num // den
+    return f"{total} ta daftarining {used_num}/{den} qismi tarqatildi. Nechta daftar qoldi?", total - used
+
+
+def f5_fraction_same_den_add(grade):
+    den = random.choice([2, 3, 4, 5, 6, 8])
+    n1 = random.randint(1, den - 1)
+    n2 = random.randint(1, den - n1)
+    total = den * random.randint(3, 20)
+    return (f"{total} ning {n1}/{den} qismi va {n2}/{den} qismi yig'indisi nechaga teng?",
+            total * (n1 + n2) // den)
+
+
+def f5_fraction_compare(grade):
+    den = random.choice([3, 4, 5, 6, 8, 10])
+    n1 = random.randint(1, den - 1)
+    n2 = random.randint(1, den - 1)
+    while n1 == n2:
+        n2 = random.randint(1, den - 1)
+    bigger = 1 if n1 > n2 else 2
+    return f"{n1}/{den} va {n2}/{den} kasrlaridan qaysi biri katta? (1 yoki 2)", bigger
+
+
+def f5_fraction_word(grade):
+    den = random.choice([2, 4, 5, 10])
+    num = random.randint(1, den - 1)
+    total = den * random.randint(4, 20)
+    used = total * num // den
+    item = random.choice(["olma", "kitob", "gul", "shar"])
+    return f"Savatda {total} ta {item} bor. Uning {num}/{den} qismi sotildi. Nechta {item} sotildi?", used
+
+
+GEN_F5_FRACTION = [
+    (f5_fraction_part, {"easy"}),
+    (f5_fraction_remaining, {"easy"}),
+    (f5_fraction_same_den_add, {"easy"}),
+    (f5_fraction_compare, {"easy"}),
+    (f5_fraction_word, {"easy"}),
+    (ex_fraction_simple, EM_TIERS),
+    (ex_fraction_nested, MH_TIERS),
+    (ex_fraction_common_denom_add, MH_TIERS),
+    (ex_fraction_compare, MH_TIERS),
+]
+
+
+# ---------- 5-sinf foizlar ----------
+def f5_percent_direct(grade):
+    base = random.randint(2, 50) * 100
+    pct = random.choice([10, 20, 25, 50])
+    return f"{base} ning {pct}% i nechaga teng?", base * pct // 100
+
+
+def f5_percent_discount(grade):
+    price = random.randint(2, 30) * 10000
+    pct = random.choice([10, 20, 25, 50])
+    discount = price * pct // 100
+    return f"Narxi {price} so'm bo'lgan buyumga {pct}% chegirma berildi. Chegirma qancha?", discount
+
+
+def f5_percent_students(grade):
+    total = random.randint(2, 20) * 10
+    pct = random.choice([10, 20, 30, 40, 50])
+    girls = total * pct // 100
+    return f"Sinfda {total} nafar o'quvchi bor. Ularning {pct}% i qizlar. Nechta qiz bor?", girls
+
+
+def f5_percent_increase(grade):
+    base = random.randint(2, 20) * 1000
+    pct = random.choice([10, 20, 25])
+    return f"{base} so'm narx {pct}% ga oshdi. Yangi narx qancha?", base + base * pct // 100
+
+
+def f5_percent_find_whole(grade):
+    pct = random.choice([10, 20, 25, 50])
+    whole = random.randint(2, 20) * 100
+    part = whole * pct // 100
+    return f"Bir sonning {pct}% i {part} ga teng. Shu sonni toping.", whole
+
+
+GEN_F5_PERCENT = [
+    (f5_percent_direct, {"easy"}),
+    (f5_percent_discount, {"easy"}),
+    (f5_percent_students, {"easy"}),
+    (f5_percent_increase, {"easy"}),
+    (f5_percent_find_whole, {"easy"}),
+    (ex_percent_successive, MH_TIERS),
+    (ex_percent_reverse, MH_TIERS),
+]
+
+
+# ---------- 5-sinf daraja (kvadrat/kub) ----------
+def f5_power_square(grade):
+    a = random.randint(2, 25)
+    return f"{a}ВІ = ?", a * a
+
+
+def f5_power_cube(grade):
+    a = random.randint(2, 10)
+    return f"{a}Ві = ?", a ** 3
+
+
+def f5_power_missing_square(grade):
+    a = random.randint(2, 20)
+    return f"Qaysi sonning kvadrati {a*a} ga teng?", a
+
+
+def f5_power_expression(grade):
+    a = random.randint(2, 10)
+    b = random.randint(2, 8)
+    return f"{a}ВІ + {b}ВІ = ?", a * a + b * b
+
+
+GEN_F5_POWER = [
+    (f5_power_square, {"easy"}),
+    (f5_power_cube, {"easy"}),
+    (f5_power_missing_square, {"easy"}),
+    (f5_power_expression, {"easy"}),
+    (ex_power_law_mul, MH_TIERS),
+    (ex_power_law_div, MH_TIERS),
+    (ex_power_law_value, MH_TIERS),
+]
+
+
+# ---------- 5-sinf nisbat ----------
+def f5_ratio_scale(grade):
+    a = random.randint(2, 12)
+    b = random.randint(2, 12)
+    k = random.randint(2, 6)
+    return f"{a}:{b} nisbatning ikkala hadi {k} marta oshirilsa, yangi ikkinchi had nechaga teng?", b * k
+
+
+def f5_ratio_split(grade):
+    p, q = random.randint(1, 5), random.randint(1, 5)
+    total_parts = p + q
+    part = random.randint(3, 20)
+    total = total_parts * part
+    first = p * part
+    return f"{total} ta buyum {p}:{q} nisbatda ikki guruhga bo'lindi. Birinchi guruhda nechta buyum bor?", first
+
+
+def f5_ratio_students(grade):
+    boys_part = random.randint(1, 4)
+    girls_part = random.randint(1, 4)
+    unit = random.randint(3, 12)
+    total = (boys_part + girls_part) * unit
+    return f"Sinfda o'g'il va qizlar soni {boys_part}:{girls_part} nisbatda. Jami {total} o'quvchi bo'lsa, o'g'il bolalar nechta?", boys_part * unit
+
+
+def f5_ratio_equal(grade):
+    a = random.randint(2, 9)
+    b = random.randint(2, 9)
+    k = random.randint(2, 7)
+    return f"{a}:{b} nisbatga teng nisbatda birinchi had {a*k} bo'lsa, ikkinchi had nechaga teng?", b * k
+
+
+GEN_F5_RATIO = [
+    (f5_ratio_scale, {"easy"}),
+    (f5_ratio_split, {"easy"}),
+    (f5_ratio_students, {"easy"}),
+    (f5_ratio_equal, {"easy"}),
+    (ex_ratio_three_part, MH_TIERS),
+    (ex_ratio_scale, MH_TIERS),
+]
+
+
+# ---------- 5-sinf o'rtacha qiymat ----------
+def f5_average_three(grade):
+    nums = _fifth_avg_numbers(3, 10, 80)
+    return f"{', '.join(map(str, nums))} sonlarining o'rtacha qiymati nechaga teng?", sum(nums) // 3
+
+
+def f5_average_four(grade):
+    nums = _fifth_avg_numbers(4, 10, 70)
+    return f"{', '.join(map(str, nums))} sonlarining o'rtacha qiymati nechaga teng?", sum(nums) // 4
+
+
+def f5_average_score(grade):
+    avg = random.randint(3, 5)
+    scores = [avg, avg, avg]
+    while True:
+        scores = [random.randint(2, 5) for _ in range(3)]
+        if sum(scores) % 3 == 0:
+            break
+    return f"O'quvchining uchta bahosi {scores[0]}, {scores[1]}, {scores[2]}. O'rtacha bahosi nechaga teng?", sum(scores) // 3
+
+
+def f5_average_sum(grade):
+    n = random.choice([3, 4, 5])
+    avg = random.randint(10, 50)
+    return f"{n} ta sonning o'rtacha qiymati {avg}. Ularning yig'indisi nechaga teng?", n * avg
+
+
+GEN_F5_AVERAGE = [
+    (f5_average_three, {"easy"}),
+    (f5_average_four, {"easy"}),
+    (f5_average_score, {"easy"}),
+    (f5_average_sum, {"easy"}),
+    (ex_average_find_missing, MH_TIERS),
+]
+
+
+# ---------- 5-sinf sodda tenglamalar ----------
+def f5_eq_add(grade):
+    x = random.randint(2, 100)
+    b = random.randint(1, 100)
+    return f"x + {b} = {x+b}. x = ?", x
+
+
+def f5_eq_sub(grade):
+    x = random.randint(2, 100)
+    b = random.randint(1, x)
+    return f"x в€’ {b} = {x-b}. x = ?", x
+
+
+def f5_eq_mul(grade):
+    x = random.randint(2, 25)
+    a = random.randint(2, 10)
+    return f"{a} Г— x = {a*x}. x = ?", x
+
+
+def f5_eq_div(grade):
+    x = random.randint(2, 30)
+    a = random.randint(2, 10)
+    return f"x Г· {a} = {x}. x = ?", x * a
+
+
+def f5_eq_word(grade):
+    x = random.randint(5, 60)
+    extra = random.randint(5, 40)
+    total = x + extra
+    return f"Bir sonning ustiga {extra} qo'shilsa, {total} hosil bo'ladi. Noma'lum sonni toping.", x
+
+
+GEN_F5_LINEAR = [
+    (f5_eq_add, {"easy"}),
+    (f5_eq_sub, {"easy"}),
+    (f5_eq_mul, {"easy"}),
+    (f5_eq_div, {"easy"}),
+    (f5_eq_word, {"easy"}),
+    (ex_linear_both_sides, MH_TIERS),
+    (ex_linear_minus, MH_TIERS),
+    (ex_linear_parentheses, MH_TIERS),
+    (ex_linear_parentheses_both, H_ONLY),
+    (ex_linear_two_step_word, MH_TIERS),
+]
+
+
+# ---------- 5-sinf uchburchak ----------
+def f5_triangle_perimeter(grade):
+    a = random.randint(4, 15)
+    b = random.randint(4, 15)
+    c = random.randint(max(3, abs(a-b)+1), a+b-1)
+    return f"Tomonlari {a} sm, {b} sm va {c} sm bo'lgan uchburchak perimetri nechaga teng?", a+b+c
+
+
+def f5_triangle_area(grade):
+    base = random.randint(4, 20)
+    height = random.randint(2, 20)
+    if base * height % 2:
+        height += 1
+    return f"Asosi {base} sm, balandligi {height} sm bo'lgan uchburchak yuzasi nechaga teng?", base*height//2
+
+
+def f5_triangle_missing_side(grade):
+    a = random.randint(5, 15)
+    b = random.randint(5, 15)
+    c = random.randint(max(3, abs(a-b)+1), a+b-1)
+    p = a+b+c
+    return f"Uchburchak perimetri {p} sm. Ikki tomoni {a} sm va {b} sm. Uchinchi tomoni nechaga teng?", c
+
+
+def f5_triangle_equal(grade):
+    side = random.randint(4, 18)
+    return f"Teng tomonli uchburchakning bir tomoni {side} sm. Perimetri nechaga teng?", side*3
+
+
+GEN_F5_TRIANGLE = [
+    (f5_triangle_perimeter, {"easy"}),
+    (f5_triangle_area, {"easy"}),
+    (f5_triangle_missing_side, {"easy"}),
+    (f5_triangle_equal, {"easy"}),
+    (ex_triangle_right_pythagorean, MH_TIERS),
+    (ex_triangle_height_from_area, MH_TIERS),
+]
+
+
+# ---------- 5-sinf to'g'ri to'rtburchak ----------
+def f5_rect_area(grade):
+    a = random.randint(3, 25)
+    b = random.randint(3, 25)
+    return f"Tomonlari {a} sm va {b} sm bo'lgan to'g'ri to'rtburchak yuzasi nechaga teng?", a*b
+
+
+def f5_rect_perimeter(grade):
+    a = random.randint(3, 25)
+    b = random.randint(3, 25)
+    return f"Tomonlari {a} sm va {b} sm bo'lgan to'g'ri to'rtburchak perimetri nechaga teng?", 2*(a+b)
+
+
+def f5_rect_missing_side(grade):
+    a = random.randint(3, 20)
+    b = random.randint(3, 20)
+    area = a*b
+    return f"To'g'ri to'rtburchak yuzasi {area} smВІ, bir tomoni {a} sm. Ikkinchi tomoni nechaga teng?", b
+
+
+def f5_rect_word(grade):
+    a = random.randint(5, 20)
+    b = random.randint(5, 20)
+    return f"Bog'ning uzunligi {a} m, eni {b} m. Uni to'liq o'rash uchun necha metr chegara kerak?", 2*(a+b)
+
+
+GEN_F5_RECTANGLE = [
+    (f5_rect_area, {"easy"}),
+    (f5_rect_perimeter, {"easy"}),
+    (f5_rect_missing_side, {"easy"}),
+    (f5_rect_word, {"easy"}),
+    (ex_rect_diagonal, MH_TIERS),
+    (ex_rect_perimeter_from_area_side, MH_TIERS),
+]
+
+
+# ---------- 5-sinf tezlik-vaqt-masofa ----------
+def f5_speed_distance(grade):
+    speed = random.randint(20, 80)
+    time = random.randint(2, 6)
+    return f"Velosipedchi {speed} km/soat tezlikda {time} soat yurdi. Qancha masofa bosib o'tdi?", speed*time
+
+
+def f5_speed_find_speed(grade):
+    time = random.randint(2, 8)
+    speed = random.randint(20, 70)
+    distance = speed*time
+    return f"Mashina {distance} km yo'lni {time} soatda bosib o'tdi. Uning tezligi qancha?", speed
+
+
+def f5_speed_find_time(grade):
+    speed = random.randint(20, 80)
+    time = random.randint(2, 6)
+    distance = speed*time
+    return f"Poyezd {distance} km yo'lni {speed} km/soat tezlikda bosib o'tdi. Yo'lda necha soat bo'ldi?", time
+
+
+def f5_speed_word(grade):
+    speed = random.randint(10, 50)
+    time = random.randint(2, 6)
+    return f"Sayohatchi har soatda {speed} km yuradi. {time} soatda necha km yuradi?", speed*time
+
+
+GEN_F5_SPEED = [
+    (f5_speed_distance, {"easy"}),
+    (f5_speed_find_speed, {"easy"}),
+    (f5_speed_find_time, {"easy"}),
+    (f5_speed_word, {"easy"}),
+    (ex_speed_meeting, MH_TIERS),
+    (ex_speed_catchup, H_ONLY),
+]
+
+
+# 5-sinf uchun yangi generatorlarni tegishli mavzularga ulaymiz.
+GEN_ADD_SUB = GEN_F5_ADD_SUB
+GEN_MUL_DIV = GEN_F5_MUL_DIV
+GEN_FRACTION = GEN_F5_FRACTION
+GEN_PERCENT = GEN_F5_PERCENT
+GEN_POWER = GEN_F5_POWER
+GEN_RATIO = GEN_F5_RATIO
+GEN_AVERAGE = GEN_F5_AVERAGE
+GEN_LINEAR_EQ = GEN_F5_LINEAR
+GEN_TRIANGLE = GEN_F5_TRIANGLE
+GEN_RECTANGLE = GEN_F5_RECTANGLE
+GEN_SPEED = GEN_F5_SPEED
+
+HINTS.update({
+    "add_sub": "Avval qavs bo'lmasa amallarni chapdan o'ngga tartib bilan bajaring. Noma'lum hadni topishda teskari amalni qo'llang.",
+    "mul_div": "Ko'paytirish va bo'lishni tekshirish uchun teskari amalni bajaring. Qoldiqli bo'lishda qoldiq bo'luvchidan kichik bo'ladi.",
+    "fraction": "Sonni maxrajga bo'lib, suratga ko'paytiring. Bir xil maxrajli kasrlarda suratlarni taqqoslash oson.",
+    "percent": "10% вЂ” sonning o'ndan biri, 50% вЂ” yarmi, 25% вЂ” choragi. Zarur bo'lsa foizni 100 ga bo'lib hisoblang.",
+    "power": "Kvadrat вЂ” sonni o'ziga bir marta ko'paytirish; kub вЂ” sonni o'ziga ikki marta ko'paytirish.",
+    "ratio": "Nisbatdagi bir qism qiymatini topib, kerakli qismlar soniga ko'paytiring.",
+    "average": "Barcha sonlarni qo'shing va nechta son bo'lsa, shunga bo'ling.",
+    "linear_eq": "Noma'lumni yolg'iz qoldirish uchun teskari amalni bajaring.",
+    "triangle": "Perimetr вЂ” uchala tomon yig'indisi. Yuzasi = asos Г— balandlik Г· 2.",
+    "rectangle": "Perimetr = 2 Г— (uzunlik + eni), yuza = uzunlik Г— eni.",
+    "speed": "Masofa = tezlik Г— vaqt; tezlik = masofa Г· vaqt; vaqt = masofa Г· tezlik.",
+})
+
 TOPIC_GENERATORS = {
     "add_sub": GEN_ADD_SUB,
     "mul_div": GEN_MUL_DIV,
@@ -2386,7 +2887,7 @@ def generate_example(user_id, topic, grade="medium"):
 
 def get_hint_keyboard(topic):
     builder = InlineKeyboardBuilder()
-    builder.button(text="💡 Yordam", callback_data=f"hint_{topic}")
+    builder.button(text="рџ’Ў Yordam", callback_data=f"hint_{topic}")
     return builder.as_markup()
 
 
@@ -2438,7 +2939,7 @@ def get_answer_keyboard(topic, options):
     for opt in options:
         builder.button(text=str(opt), callback_data=f"ans_{opt}")
     builder.adjust(2, 2)
-    builder.button(text="💡 Yordam", callback_data=f"hint_{topic}")
+    builder.button(text="рџ’Ў Yordam", callback_data=f"hint_{topic}")
     builder.adjust(2, 2, 1)
     return builder.as_markup()
 
@@ -2482,8 +2983,8 @@ async def end_speedtest(user_id, chat_id):
         update_user(user_id, current_topic=None, current_answer=None)
         await bot.send_message(
             chat_id,
-            f"⏱️ Vaqt tugadi!\n\n"
-            f"60 soniyada siz {count} ta misolni to'g'ri yechdingiz! 🎉\n\n"
+            f"вЏ±пёЏ Vaqt tugadi!\n\n"
+            f"60 soniyada siz {count} ta misolni to'g'ri yechdingiz! рџЋ‰\n\n"
             f"Yana urinish uchun /speedtest yozing."
         )
 
@@ -2493,7 +2994,7 @@ async def end_speedtest(user_id, chat_id):
 async def start_handler(message: types.Message):
     get_user(message.from_user.id, message.from_user.first_name)
     await message.answer(
-        f"Salom, {message.from_user.first_name}! 🤖\n\n"
+        f"Salom, {message.from_user.first_name}! рџ¤–\n\n"
         f"Men matematika mashq botiman.\n\n"
         f"Avval sinf darajangizni tanlang (misollarning qiyinligi va mavzular ro'yxati shunga qarab moslanadi):",
         reply_markup=get_grade_keyboard()
@@ -2509,7 +3010,7 @@ async def grade_chosen(callback: types.CallbackQuery):
 
     await callback.message.edit_text(
         f"Daraja tanlandi: {GRADE_LABELS[grade]}\n\n"
-        f"Endi mavzuni tanlang, yoki pastdagi 📋 Menu tugmasidan barcha buyruqlarni ko'ring:"
+        f"Endi mavzuni tanlang, yoki pastdagi рџ“‹ Menu tugmasidan barcha buyruqlarni ko'ring:"
     )
     await callback.message.answer("Mavzuni tanlang:", reply_markup=get_topics_keyboard(grade))
     await callback.answer()
@@ -2534,12 +3035,11 @@ async def topic_chosen(callback: types.CallbackQuery):
 
     await callback.message.edit_text(
         f"Mavzu: {topic_name}\n\n"
-        f"📝 Misol: {example_text}\n\n"
-        f"To'g'ri javobni tanlang 👇\n\n"
+        f"рџ“ќ Misol: {example_text}\n\n"
+        f"To'g'ri javobni tanlang рџ‘‡\n\n"
         f"(Menu tugmasidan boshqa buyruqlarni tanlashingiz mumkin)",
         reply_markup=get_answer_keyboard(topic, options)
     )
-    await send_geometry_image_if_relevant(callback.message.chat.id, topic)
     await callback.answer()
 
 
@@ -2563,65 +3063,22 @@ async def answer_button_handler(callback: types.CallbackQuery):
         await callback.answer("Bu savol eskirgan. /topics yozing.", show_alert=True)
         return
 
-    is_correct = (chosen == correct_answer)
-    log_daily_answer(user_id, is_correct)
-
-    if is_correct:
+    if chosen == correct_answer:
         update_user(user_id, correct=user["correct"] + 1)
         update_topic_stat(user_id, topic, correct_delta=1)
         add_weekly_correct(user_id)
         new_streak = update_streak(user_id)
-        result_text = f"{random.choice(MOTIVATIONS)} 🔥 Streak: {new_streak} kun"
-
-        today_correct = get_today_correct(user_id)
-        if today_correct == DAILY_GOAL:
-            result_text += f"\n\n🎯 Tabriklaymiz! Bugungi {DAILY_GOAL} ta maqsadga yetdingiz!"
+        result_text = f"{random.choice(MOTIVATIONS)} рџ”Ґ Streak: {new_streak} kun"
     else:
         update_user(user_id, wrong=user["wrong"] + 1)
         update_topic_stat(user_id, topic, wrong_delta=1)
         old_question = user["current_question"] or "?"
         log_mistake(user_id, topic, old_question, correct_answer)
         solution_hint = HINTS.get(topic, "")
-        result_text = f"❌ Noto'g'ri. To'g'ri javob: {correct_answer}\n📖 Yechim: {solution_hint}"
+        result_text = f"вќЊ Noto'g'ri. To'g'ri javob: {correct_answer}\nрџ“– Yechim: {solution_hint}"
 
+    # Keyingi mavzuni tanlaymiz (random/challenge rejimda - yangi tasodifiy mavzu)
     mode = user["current_mode"]
-
-    # === Takrorlash (spaced repetition) rejimi maxsus oqimi ===
-    if mode == "review":
-        stage = get_review_stage(user_id, topic)
-        if is_correct:
-            new_stage = stage + 1
-            if new_stage > 2:
-                remove_review(user_id, topic)
-                result_text += f"\n\n✅ {TOPICS[topic]} mavzusi mustahkamlandi!"
-            else:
-                schedule_review(user_id, topic, new_stage)
-        else:
-            schedule_review(user_id, topic, stage=0)
-
-        due = [t for t, s in get_due_reviews(user_id) if t != topic]
-        if due:
-            next_topic = due[0]
-            example_text, answer = generate_example(user_id, next_topic, user["grade"])
-            options = generate_options(answer, allow_negative=topic_allows_negative(next_topic))
-            update_user(user_id, current_topic=next_topic, current_answer=answer, current_mode="review", current_question=example_text)
-            await callback.message.edit_text(
-                f"{result_text}\n\n"
-                f"🔄 Takrorlash ({TOPICS[next_topic]}): {example_text}\n\n"
-                f"To'g'ri javobni tanlang 👇",
-                reply_markup=get_answer_keyboard(next_topic, options)
-            )
-            await send_geometry_image_if_relevant(callback.message.chat.id, next_topic)
-        else:
-            update_user(user_id, current_mode="normal", current_topic=None, current_answer=None)
-            await callback.message.edit_text(
-                f"{result_text}\n\n"
-                f"🔄 Bugungi barcha takrorlashlar tugadi! Menu orqali /topics ni tanlashingiz mumkin."
-            )
-        await callback.answer()
-        return
-
-    # === Oddiy / random / challenge rejim davomi ===
     if mode == "random":
         next_topic = random.choice(topics_for_grade(user["grade"]))
     elif mode == "challenge":
@@ -2638,11 +3095,10 @@ async def answer_button_handler(callback: types.CallbackQuery):
 
     await callback.message.edit_text(
         f"{result_text}\n\n"
-        f"📝 Keyingi misol{topic_label}: {example_text}\n\n"
-        f"To'g'ri javobni tanlang 👇",
+        f"рџ“ќ Keyingi misol{topic_label}: {example_text}\n\n"
+        f"To'g'ri javobni tanlang рџ‘‡",
         reply_markup=get_answer_keyboard(next_topic, options)
     )
-    await send_geometry_image_if_relevant(callback.message.chat.id, next_topic)
     await callback.answer()
 
 
@@ -2664,12 +3120,11 @@ async def random_handler(message: types.Message):
     update_user(user_id, current_topic=topic, current_answer=answer, current_question=example_text)
 
     await message.answer(
-        f"🎲 Aralash rejim yoqildi! Har safar boshqa mavzudan savol keladi.\n\n"
-        f"📝 Misol ({TOPICS[topic]}): {example_text}\n\n"
-        f"To'g'ri javobni tanlang 👇",
+        f"рџЋІ Aralash rejim yoqildi! Har safar boshqa mavzudan savol keladi.\n\n"
+        f"рџ“ќ Misol ({TOPICS[topic]}): {example_text}\n\n"
+        f"To'g'ri javobni tanlang рџ‘‡",
         reply_markup=get_answer_keyboard(topic, options)
     )
-    await send_geometry_image_if_relevant(message.chat.id, topic)
 
 
 @dp.message(Command("challenge"))
@@ -2684,24 +3139,23 @@ async def challenge_handler(message: types.Message):
     update_user(user_id, current_topic=topic, current_answer=answer, current_question=example_text)
 
     await message.answer(
-        f"⭐ Challenge rejimi! Faqat eng qiyin darajadagi savollar.\n\n"
-        f"📝 Misol ({TOPICS[topic]}): {example_text}\n\n"
-        f"To'g'ri javobni tanlang 👇",
+        f"в­ђ Challenge rejimi! Faqat eng qiyin darajadagi savollar.\n\n"
+        f"рџ“ќ Misol ({TOPICS[topic]}): {example_text}\n\n"
+        f"To'g'ri javobni tanlang рџ‘‡",
         reply_markup=get_answer_keyboard(topic, options)
     )
-    await send_geometry_image_if_relevant(message.chat.id, topic)
 
 
 @dp.message(Command("formula"))
 async def formula_handler(message: types.Message):
-    await message.answer("📘 Qaysi mavzu formulasini ko'rmoqchisiz?", reply_markup=get_formula_keyboard())
+    await message.answer("рџ“ Qaysi mavzu formulasini ko'rmoqchisiz?", reply_markup=get_formula_keyboard())
 
 
 @dp.callback_query(F.data.startswith("formula_"))
 async def formula_chosen(callback: types.CallbackQuery):
     topic = callback.data.replace("formula_", "")
     text = FORMULAS.get(topic, "Formula topilmadi.")
-    await callback.message.answer(f"📘 {text}")
+    await callback.message.answer(f"рџ“ {text}")
     await callback.answer()
 
 
@@ -2711,13 +3165,13 @@ async def mistakes_handler(message: types.Message):
     rows = get_recent_mistakes(user_id, limit=8)
 
     if not rows:
-        await message.answer("📖 Hali xatolaringiz yo'q. Zo'r natija!")
+        await message.answer("рџ“– Hali xatolaringiz yo'q. Zo'r natija!")
         return
 
-    text = "📖 Oxirgi xatolaringiz:\n\n"
+    text = "рџ“– Oxirgi xatolaringiz:\n\n"
     for topic, question, correct_answer in rows:
         topic_name = TOPICS.get(topic, topic)
-        text += f"• {topic_name}: {question} → to'g'ri javob: {correct_answer}\n"
+        text += f"вЂў {topic_name}: {question} в†’ to'g'ri javob: {correct_answer}\n"
     text += "\nShu mavzularni qayta mashq qilish uchun Menu orqali /topics ni tanlang."
 
     await message.answer(text)
@@ -2731,11 +3185,11 @@ async def topweek_handler(message: types.Message):
         await message.answer("Bu hafta hali hech kim mashq qilmagan.")
         return
 
-    text = "📅 Haftalik reyting:\n\n"
-    medals = ["🥇", "🥈", "🥉"]
+    text = "рџ“… Haftalik reyting:\n\n"
+    medals = ["рџҐ‡", "рџҐ€", "рџҐ‰"]
     for i, (name, week_correct) in enumerate(rows):
         medal = medals[i] if i < 3 else f"{i+1}."
-        text += f"{medal} {name} — {week_correct} ta to'g'ri\n"
+        text += f"{medal} {name} вЂ” {week_correct} ta to'g'ri\n"
 
     await message.answer(text)
 
@@ -2755,13 +3209,13 @@ async def map_handler(message: types.Message):
 
     rows_sorted = sorted(rows, key=accuracy, reverse=True)
 
-    text = "📊 Bilim xaritangiz:\n\n"
+    text = "рџ“Љ Bilim xaritangiz:\n\n"
     for topic, correct, wrong in rows_sorted:
         total = correct + wrong
         pct = round(correct / total * 100) if total > 0 else 0
         topic_name = TOPICS.get(topic, topic)
         filled = pct // 10
-        bar = "🟩" * filled + "⬜" * (10 - filled)
+        bar = "рџџ©" * filled + "в¬њ" * (10 - filled)
         text += f"{topic_name}\n{bar} {pct}%\n\n"
 
     await message.answer(text)
@@ -2777,11 +3231,11 @@ async def stats_handler(message: types.Message):
     streak = user["streak"] or 0
 
     await message.answer(
-        f"📊 Sizning statistikangiz:\n\n"
-        f"✅ To'g'ri: {correct}\n"
-        f"❌ Noto'g'ri: {wrong}\n"
-        f"🎯 Aniqlik: {percent}%\n"
-        f"🔥 Streak: {streak} kun"
+        f"рџ“Љ Sizning statistikangiz:\n\n"
+        f"вњ… To'g'ri: {correct}\n"
+        f"вќЊ Noto'g'ri: {wrong}\n"
+        f"рџЋЇ Aniqlik: {percent}%\n"
+        f"рџ”Ґ Streak: {streak} kun"
     )
 
 
@@ -2793,11 +3247,11 @@ async def top_handler(message: types.Message):
         await message.answer("Hozircha hech kim mashq qilmagan.")
         return
 
-    text = "🏆 Eng yaxshi 10 ta ishtirokchi:\n\n"
-    medals = ["🥇", "🥈", "🥉"]
+    text = "рџЏ† Eng yaxshi 10 ta ishtirokchi:\n\n"
+    medals = ["рџҐ‡", "рџҐ€", "рџҐ‰"]
     for i, (name, correct, wrong) in enumerate(top_users):
         medal = medals[i] if i < 3 else f"{i+1}."
-        text += f"{medal} {name} — {correct} ta to'g'ri\n"
+        text += f"{medal} {name} вЂ” {correct} ta to'g'ri\n"
 
     await message.answer(text)
 
@@ -2818,7 +3272,7 @@ async def creategroup_handler(message: types.Message):
         return
 
     await message.answer(
-        f"🏫 Guruh yaratildi: {name}\n\n"
+        f"рџЏ« Guruh yaratildi: {name}\n\n"
         f"Qo'shilish kodi: `{code}`\n\n"
         f"O'quvchilaringizga shu kodni bering, ular botga `/joingroup {code}` deb yozishlari kerak.\n"
         f"O'quvchilar ro'yxatini ko'rish uchun /mystudents yozing.",
@@ -2843,7 +3297,7 @@ async def joingroup_handler(message: types.Message):
     get_user(message.from_user.id, message.from_user.first_name)
     update_user(message.from_user.id, group_code=code)
 
-    await message.answer(f"✅ Siz \"{group[2]}\" guruhiga qo'shildingiz!")
+    await message.answer(f"вњ… Siz \"{group[2]}\" guruhiga qo'shildingiz!")
 
 
 @dp.message(Command("mystudents"))
@@ -2858,70 +3312,17 @@ async def mystudents_handler(message: types.Message):
     text = ""
     for code, name in groups:
         students = get_group_students(code)
-        text += f"🏫 {name} (kod: {code})\n"
+        text += f"рџЏ« {name} (kod: {code})\n"
         if not students:
             text += "   Hali o'quvchi qo'shilmagan.\n\n"
             continue
         for first_name, correct, wrong in students:
             total = correct + wrong
             pct = round(correct / total * 100) if total > 0 else 0
-            text += f"   • {first_name} — {correct} to'g'ri ({pct}%)\n"
+            text += f"   вЂў {first_name} вЂ” {correct} to'g'ri ({pct}%)\n"
         text += "\n"
 
     await message.answer(text)
-
-
-@dp.message(Command("goal"))
-async def goal_handler(message: types.Message):
-    user_id = message.from_user.id
-    get_user(user_id, message.from_user.first_name)
-    today_correct = get_today_correct(user_id)
-    filled = min(10, round(today_correct / DAILY_GOAL * 10))
-    bar = "🟩" * filled + "⬜" * (10 - filled)
-
-    if today_correct >= DAILY_GOAL:
-        text = f"🎯 Kunlik maqsad: {today_correct}/{DAILY_GOAL}\n{bar}\n\n✅ Bugungi maqsadga yetdingiz! Zo'r natija!"
-    else:
-        qoldi = DAILY_GOAL - today_correct
-        text = f"🎯 Kunlik maqsad: {today_correct}/{DAILY_GOAL}\n{bar}\n\nMaqsadga yetish uchun yana {qoldi} ta to'g'ri javob kerak. /topics orqali boshlang!"
-
-    await message.answer(text)
-
-
-@dp.message(Command("progress"))
-async def progress_handler(message: types.Message):
-    user_id = message.from_user.id
-    get_user(user_id, message.from_user.first_name)
-    try:
-        image_bytes = draw_progress_image(user_id)
-        photo = BufferedInputFile(image_bytes, filename="progress.png")
-        await message.answer_photo(photo, caption="📉 Oxirgi 7 kunlik natijangiz")
-    except Exception:
-        await message.answer("Grafikni chizishda xatolik yuz berdi. Birozdan keyin qayta urinib ko'ring.")
-
-
-@dp.message(Command("review"))
-async def review_handler(message: types.Message):
-    user_id = message.from_user.id
-    user = get_user(user_id, message.from_user.first_name)
-
-    due = get_due_reviews(user_id)
-    if not due:
-        await message.answer("🔄 Hozircha takrorlash kerak bo'lgan mavzu yo'q. Zo'r natija!")
-        return
-
-    topic = due[0][0]
-    example_text, answer = generate_example(user_id, topic, user["grade"])
-    options = generate_options(answer, allow_negative=topic_allows_negative(topic))
-    update_user(user_id, current_topic=topic, current_answer=answer, current_mode="review", current_question=example_text)
-
-    await message.answer(
-        f"🔄 Takrorlash rejimi — avval xato qilgan mavzularingiz qaytariladi.\n\n"
-        f"Mavzu ({TOPICS[topic]}): {example_text}\n\n"
-        f"To'g'ri javobni tanlang 👇",
-        reply_markup=get_answer_keyboard(topic, options)
-    )
-    await send_geometry_image_if_relevant(message.chat.id, topic)
 
 
 @dp.message(Command("path"))
@@ -2930,15 +3331,15 @@ async def path_handler(message: types.Message):
     get_user(user_id, message.from_user.first_name)
     statuses, current_topic = get_path_status(user_id)
 
-    text = "📚 O'quv yo'lingiz:\n\n"
+    text = "рџ“љ O'quv yo'lingiz:\n\n"
     for t, status in statuses:
-        icon = {"done": "✅", "current": "▶️", "locked": "🔒"}[status]
+        icon = {"done": "вњ…", "current": "в–¶пёЏ", "locked": "рџ”’"}[status]
         text += f"{icon} {TOPICS[t]}\n"
 
     text += f"\nHozirgi bosqich: {TOPICS[current_topic]}\n(Bir bosqichni ochish uchun kamida 5 ta savolda 70% to'g'ri javob bering)"
 
     builder = InlineKeyboardBuilder()
-    builder.button(text="▶️ Boshlash", callback_data=f"pathstart_{current_topic}")
+    builder.button(text="в–¶пёЏ Boshlash", callback_data=f"pathstart_{current_topic}")
     await message.answer(text, reply_markup=builder.as_markup())
 
 
@@ -2957,7 +3358,7 @@ async def mycode_handler(message: types.Message):
     get_user(message.from_user.id, message.from_user.first_name)
     code = ensure_personal_code(message.from_user.id)
     await message.answer(
-        f"🔗 Sizning shaxsiy kodingiz: `{code}`\n\n"
+        f"рџ”— Sizning shaxsiy kodingiz: `{code}`\n\n"
         f"Do'stingizga shu kodni bering, u /compare {code} deb yozib natijalaringizni solishtira oladi.",
         parse_mode="Markdown"
     )
@@ -2978,7 +3379,7 @@ async def compare_handler(message: types.Message):
         return
 
     if other["user_id"] == message.from_user.id:
-        await message.answer("Bu sizning o'z kodingiz 🙂 Do'stingizning kodini kiriting.")
+        await message.answer("Bu sizning o'z kodingiz рџ™‚ Do'stingizning kodini kiriting.")
         return
 
     me = get_user(message.from_user.id, message.from_user.first_name)
@@ -2988,9 +3389,9 @@ async def compare_handler(message: types.Message):
     other_pct = round(other["correct"] / other_total * 100) if other_total > 0 else 0
 
     await message.answer(
-        f"🔗 Taqqoslash:\n\n"
-        f"👤 {me['first_name']}: {me['correct']} to'g'ri, {me_pct}% aniqlik, 🔥{me['streak']} kun\n"
-        f"👤 {other['first_name']}: {other['correct']} to'g'ri, {other_pct}% aniqlik, 🔥{other['streak']} kun"
+        f"рџ”— Taqqoslash:\n\n"
+        f"рџ‘¤ {me['first_name']}: {me['correct']} to'g'ri, {me_pct}% aniqlik, рџ”Ґ{me['streak']} kun\n"
+        f"рџ‘¤ {other['first_name']}: {other['correct']} to'g'ri, {other_pct}% aniqlik, рџ”Ґ{other['streak']} kun"
     )
 
 
@@ -3008,8 +3409,8 @@ async def speedtest_handler(message: types.Message):
     update_user(user_id, current_topic="speedtest_add_sub", current_answer=answer)
 
     await message.answer(
-        f"⏱️ Tezlik testi boshlandi! 60 soniyada nechta misol yecha olasiz?\n\n"
-        f"📝 {example_text} = ?"
+        f"вЏ±пёЏ Tezlik testi boshlandi! 60 soniyada nechta misol yecha olasiz?\n\n"
+        f"рџ“ќ {example_text} = ?"
     )
 
     asyncio.create_task(end_speedtest(user_id, message.chat.id))
@@ -3028,13 +3429,13 @@ async def check_answer_handler(message: types.Message):
 
         if user_answer == correct_answer:
             speedtest_active[user_id]["count"] += 1
-            await message.answer("✅ To'g'ri!")
+            await message.answer("вњ… To'g'ri!")
         else:
-            await message.answer(f"❌ Noto'g'ri. To'g'ri javob: {correct_answer}")
+            await message.answer(f"вќЊ Noto'g'ri. To'g'ri javob: {correct_answer}")
 
         example_text, answer = generate_example(user_id, "add_sub", "medium")
         update_user(user_id, current_answer=answer)
-        await message.answer(f"📝 {example_text} = ?")
+        await message.answer(f"рџ“ќ {example_text} = ?")
     else:
         await message.answer("Mavzu tanlash uchun /topics, tezlik testi uchun /speedtest, statistika uchun /stats, reyting uchun /top yozing.")
 
@@ -3069,8 +3470,8 @@ async def daily_reminder_loop():
                 try:
                     await bot.send_message(
                         user_id,
-                        "🔔 Bugun hali mashq qilmadingiz!\n\n"
-                        "5 daqiqa vaqt ajratib, bilimingizni mustahkamlang 💪\n"
+                        "рџ”” Bugun hali mashq qilmadingiz!\n\n"
+                        "5 daqiqa vaqt ajratib, bilimingizni mustahkamlang рџ’Є\n"
                         "Menu tugmasidan /topics ni tanlang va boshlang!"
                     )
                 except Exception:
@@ -3080,26 +3481,23 @@ async def daily_reminder_loop():
 async def set_bot_commands():
     commands = [
         types.BotCommand(command="start", description="Botni ishga tushirish"),
-        types.BotCommand(command="topics", description="📚 Mavzular ro'yxati"),
-        types.BotCommand(command="path", description="🗺️ O'quv yo'lim"),
-        types.BotCommand(command="random", description="🎲 Aralash rejim"),
-        types.BotCommand(command="challenge", description="⭐ Qiyin savollar"),
-        types.BotCommand(command="speedtest", description="⏱️ Tezlik testi"),
-        types.BotCommand(command="formula", description="🧮 Formulalar bazasi"),
-        types.BotCommand(command="mistakes", description="📖 Xatolaringiz"),
-        types.BotCommand(command="map", description="📊 Bilim xaritangiz"),
-        types.BotCommand(command="stats", description="📈 Statistikangiz"),
-        types.BotCommand(command="top", description="🏆 Umumiy reyting"),
-        types.BotCommand(command="topweek", description="📅 Haftalik reyting"),
-        types.BotCommand(command="mycode", description="🔗 Shaxsiy kodim"),
-        types.BotCommand(command="compare", description="🔗 Do'st bilan solishtirish"),
-        types.BotCommand(command="creategroup", description="🏫 Guruh yaratish (o'qituvchi)"),
-        types.BotCommand(command="joingroup", description="🏫 Guruhga qo'shilish"),
-        types.BotCommand(command="mystudents", description="🏫 O'quvchilarim (o'qituvchi)"),
-        types.BotCommand(command="goal", description="🎯 Kunlik maqsad"),
-        types.BotCommand(command="progress", description="📉 Progress grafigi"),
-        types.BotCommand(command="review", description="🔄 Takrorlash"),
-        types.BotCommand(command="level", description="🎓 Sinf darajasi"),
+        types.BotCommand(command="topics", description="рџ“љ Mavzular ro'yxati"),
+        types.BotCommand(command="path", description="рџ—єпёЏ O'quv yo'lim"),
+        types.BotCommand(command="random", description="рџЋІ Aralash rejim"),
+        types.BotCommand(command="challenge", description="в­ђ Qiyin savollar"),
+        types.BotCommand(command="speedtest", description="вЏ±пёЏ Tezlik testi"),
+        types.BotCommand(command="formula", description="рџ§® Formulalar bazasi"),
+        types.BotCommand(command="mistakes", description="рџ“– Xatolaringiz"),
+        types.BotCommand(command="map", description="рџ“Љ Bilim xaritangiz"),
+        types.BotCommand(command="stats", description="рџ“€ Statistikangiz"),
+        types.BotCommand(command="top", description="рџЏ† Umumiy reyting"),
+        types.BotCommand(command="topweek", description="рџ“… Haftalik reyting"),
+        types.BotCommand(command="mycode", description="рџ”— Shaxsiy kodim"),
+        types.BotCommand(command="compare", description="рџ”— Do'st bilan solishtirish"),
+        types.BotCommand(command="creategroup", description="рџЏ« Guruh yaratish (o'qituvchi)"),
+        types.BotCommand(command="joingroup", description="рџЏ« Guruhga qo'shilish"),
+        types.BotCommand(command="mystudents", description="рџЏ« O'quvchilarim (o'qituvchi)"),
+        types.BotCommand(command="level", description="рџЋ“ Sinf darajasi"),
     ]
     await bot.set_my_commands(commands)
 
